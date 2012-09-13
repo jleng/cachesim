@@ -89,6 +89,11 @@ int main(int argc, char* argv[]) {
 				cout << "Store operation\n" << endl;
 			}
 #endif
+
+
+			/*
+			* Jingwen: you can use the address, cpu_cycle, is_load to feed in to the l1
+			*/
 		}
 		
 	}
