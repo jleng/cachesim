@@ -8,8 +8,10 @@ INCLUDES = -I.
 LIBS = -lm
 EXECUTABLE=cachesim
 
-${EXECUTABLE}:${SOURCE} ${INC}
+${EXECUTABLE}:${SOURCE} ${INC} autotest.cpp singlecache.cpp
 	${CC} ${CFLAGS} ${INCLUDES} -o $@ ${SOURCE} ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} -o autotest autotest.cpp ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} -o singlecache singlecache.cpp Cache.cpp ${LIBS}
 
 clean:
 	-rm -f *.o $(EXECUTABLE)
