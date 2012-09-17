@@ -124,6 +124,14 @@ void	Cache::advance_one_incoming_request()
 		// Below will 'ONLY' have cache-blocks modified to 'DIRTY' when it's a HIT -- otherwise, it only tells you whether it's a MISS-ALLOCATE or MISS-REPLACE
 		enum cache_access_status 	result	= access( req_core_id, req_op, req_access_addr, cpu_cycle);
 
+#ifdef _DEBUG_
+if(req_access_addr == 48311296)
+{
+	printf("[DEBUG][L%d][STORE=%d][HIT=%d] Addr=%x(%d) QUERIED at CYCLE=%lld\n\n",m_cache_level, req_op, result, req_access_addr, req_access_addr, cpu_cycle);
+
+}
+#endif
+
 		switch(result)
 		{
 			case	HIT:
@@ -255,7 +263,8 @@ void	Cache::advance_one_serviced_request()
 				addr_type	set_idx 		= get_set_index(serviced_access_addr);
 				addr_type	tag_value		= get_tag_value(serviced_access_addr);
 				#ifdef _DEBUG_
-				printf("[SERVICED_Q_latency_is_ZERO!!!][Cycle=%lld] [Opcode=%d][AccessAddr=%8x] SetIdx=%x Tag=%x\n", cpu_cycle,serviced_opcode, serviced_access_addr,set_idx, tag_value);
+				printf("\n\n[SERVICED_Q_latency_is_ZERO!!!][L%d-cache][Cycle=%lld] [Opcode=%d][AccessAddr=%8x][InitReqTime=%lld] SetIdx=%x Tag=%x\n", m_cache_level,cpu_cycle,serviced_opcode, serviced_access_addr, serviced_init_req_time, set_idx, tag_value);
+				print_queue_status();
 				#endif
 	
 				// "ALLOCATE' a block at "this-cache"
@@ -263,15 +272,11 @@ void	Cache::advance_one_serviced_request()
 				cache_block_t	evicted_block;
 				bool		dirty_block_evicted = false;
 
-if(serviced_access_addr == 48311296)
-{
-	printf("[DEBUG][L%d][STORE=%d] Addr=%x(%d) accessed at CYCLE=%lld\n",m_cache_level,serviced_opcode, serviced_access_addr, serviced_access_addr, cpu_cycle);
-}
 				enum cache_access_status access_result = m_tag_array.allocate_block( serviced_opcode, serviced_access_addr, set_idx, tag_value, cpu_cycle, &evicted_block, &dirty_block_evicted);
 				switch(access_result)
 				{
 					case	HIT:					
-						assert(0);	// Can't happen
+						// This means that a concurrent MISS closer than this MISS has come back earlier.
 						break;
 
 					case	MISS_WITH_ENTRY_ALLOCATION:
@@ -319,6 +324,12 @@ if(serviced_access_addr == 48311296)
 						assert(0);
 						break;
 				}
+#ifdef _DEBUG_
+if(serviced_access_addr == 48311296)
+{
+	printf("[DEBUG][L%d][STORE=%d] Addr=%x(%d) accessed at CYCLE=%lld\n\n",m_cache_level,serviced_opcode, serviced_access_addr, serviced_access_addr, cpu_cycle);
+}
+#endif
 
 				// If this is L1 and is a 'write', then we should "MARK" this block as "DIRTY"
 				#ifdef _SANITY_
@@ -525,10 +536,7 @@ enum cache_access_status tag_array::allocate_block(unsigned is_write, addr_type 
 	switch(access_result)
 	{
 		case	HIT:
-					printf("[SERVICED_Q_latency_is_ZERO!!!][Cycle=%lld] [Opcode=%d][AccessAddr=%8x] SetIdx=%x Tag=%x\n", cpu_cycle,is_write, access_addr, set_index, tag_value);
-					print_all_lines();
-
-			assert(0);	// Can't happen
+			// A concurrent MISS closer than this MISS has come back earlier (only need to make it DIRTY if this is STORE)
 			break;
 
 		case	MISS_WITH_ENTRY_ALLOCATION:

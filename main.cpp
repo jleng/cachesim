@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         trace_file.open(trace_file_name.c_str(),ifstream::in);
 
         int num_lines;
-	#ifdef _DEBUG_
+	#ifndef _DEBUG_
         cout << "\n\nInput number of lines to read in trace file: " << endl;
         cin >> num_lines;
         cout << "\n\n" << endl;
@@ -46,8 +46,12 @@ int main(int argc, char* argv[]) {
 	*/
 	Core Core_0(/*core_id*/0);
 	// Instantiate "L1D" for core-0 
-	Cache *L1	= new Cache(0, 1, 1, 1024, 16, 4, 3, 10,  "Level 1");
-	Cache *L2	= new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 1024, 16, 4, 10, 20, "Level 2");
+//	Cache *L1	= new Cache(0, 1, 1, 1024, 16, 4, 3, 10,  "Level 1");
+//	Cache *L2	= new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 1024, 16, 4, 10, 20, "Level 2");
+	Cache *L1	= new Cache(0, 1, 1, 524288, 32, 4, 5, 20,  "Level 1");
+//	Cache *L1	= new Cache(0, 1, 1, 16384, 32, 2, 5, 20,  "Level 1");
+
+	Cache *L2	= new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 524288, 128, 2, 20, 200, "Level 2");
 
 	// Connect Core_0->L1
 	L1->set_upper_level_serviced_q( Core_0.get_serviced_q() );
@@ -100,11 +104,10 @@ int main(int argc, char* argv[]) {
                         cout << string(5, ' ') << setw(20) << "Address :" << "0x" << hex << trace_addr << endl;
                         cout << string(5, ' ') << setw(20) << "CPU Cycle :" << dec << trace_cycle << endl;
 			#endif
-			#ifndef _DEBUG_
+			#ifdef _DEBUG_
 			printf("[MSRHU][Addr=%x(%d)][Cycle=%d][STORE=%d]\n", trace_addr, trace_addr, trace_cycle, is_STORE);
 			#endif
 		}
-
 		// Execute until trace's CYCLE equals Core-Cache's cycle
 		while(cpu_cycle!= trace_cycle)
 		{
@@ -125,6 +128,7 @@ int main(int argc, char* argv[]) {
 			printf("=====================End of cycle = %lld=================\n", cpu_cycle);
 			#endif
 		}
+
 		// If you're here, then trace_cycle==cpu_cycle => Insert mem-request-ops
 		#ifdef _SANITY_
 		assert(cpu_cycle==trace_cycle);
