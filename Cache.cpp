@@ -50,14 +50,6 @@ enum cache_access_status Cache::access(int req_core_id, unsigned is_write, addr_
 	return m_tag_array.access( is_write, access_addr, set_idx, tag_value, cycle_time);
 }	
 
-void	Cache::insert_incoming_request(int req_core_id, enum opcode is_write, addr_type access_addr)
-{
-	// Insert 'incoming' requests	
-	mem_request_t	this_request(req_core_id, is_write, access_addr, cpu_cycle, 1818, false);	// 1818 is means nothing in this case
-
-	m_in_request_q.insert(m_in_request_q.begin(), this_request);
-}
-
 void	Cache::advance_one_incoming_request()
 {
 	// If a pending-request exists ...
@@ -125,9 +117,13 @@ void	Cache::advance_one_incoming_request()
 		enum cache_access_status 	result	= access( req_core_id, req_op, req_access_addr, cpu_cycle);
 
 #ifdef _DEBUG_
-if(req_access_addr == 48311296)
+//if(req_access_addr == 48311296)
+if(1)
 {
-	printf("[DEBUG][L%d][STORE=%d][HIT=%d] Addr=%x(%d) QUERIED at CYCLE=%lld\n\n",m_cache_level, req_op, result, req_access_addr, req_access_addr, cpu_cycle);
+	addr_type	set_idx 	= get_set_index(req_access_addr);
+	addr_type	tag_value	= get_tag_value(req_access_addr);
+	printf("\n[DEBUG][L%d][STORE=%d][HIT=%d] Addr=%x(%d) QUERIED at CYCLE=%lld\n",m_cache_level, req_op, result, req_access_addr, req_access_addr, cpu_cycle);
+	printf("SetIdx=%x Tag=%x\n\n", set_idx, tag_value);
 
 }
 #endif
@@ -583,7 +579,6 @@ void tag_array::mark_dirty_if_needed(unsigned is_write, addr_type access_addr, a
 	unsigned	block_idx;
 	enum	cache_access_status	access_result	= probe(set_index, tag_value, block_idx);
 	assert(access_result==HIT);
-	assert(m_blocks[block_idx].m_last_access_time==cycle_time);
 	// If this is a "STORE", then mark it "DIRTY"
 	if(is_write==1)
 	{
@@ -685,6 +680,12 @@ void	Core::advance_cycle()
 				#endif
 				// Delete the 'this request' from queue
 				m_core_serviced_q.erase(it);
+
+				// Increment number of requests actually serviced
+				m_num_serviced++;	
+	
+				// Accumulate access-latency
+				m_access_latencies_accumulated	+= ( cpu_cycle - (*it).m_first_request_time );
 			}
 		}
 	}
@@ -696,4 +697,28 @@ void	Core::advance_cycle()
 	#endif
 
 }
+
+void	Core::insert_incoming_request(enum opcode is_write, addr_type access_addr)
+{
+	// Track total number of accesses inserted to this core
+	m_num_accesses++;
+
+	mem_request_t   this_request(m_core_id, is_write, access_addr, cpu_cycle, 1818, false);
+
+	m_lower_level_request_q->insert(m_lower_level_request_q->begin(), this_request);
+}
+
+void	Core::print_stats()
+{
+	printf("\n=====================================\n");
+	printf("[Core-%d] Stats\n", m_core_id);
+	printf("- Num of access 	= %d\n", m_num_accesses);
+	printf("- Num of serviced	= %lld\n", m_num_serviced); 
+	printf("-------------------------------------\n");
+	printf("- Total latencies accumulated	 = %lld\n", m_access_latencies_accumulated);
+	printf("- (AMAT) Average Mem Access Time = %lf\n", ((double)m_access_latencies_accumulated)/((double)m_num_serviced));
+	printf("=====================================\n\n");
+}
+
+
 

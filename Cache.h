@@ -112,14 +112,48 @@ protected:
 
 class Core {
 	public:
-		Core(int core_id){ 	m_core_id = core_id;	}
+		Core(int core_id)
+		{ 	
+			m_core_id 			= core_id;	
+			m_num_accesses			= 0;
+			m_num_serviced			= 0;
+			m_access_latencies_accumulated	= 0;
+		
+			m_all_requests_serviced		= false;
+			m_lower_level_request_q		= NULL;
+		}
 		void			advance_cycle();
 		int			get_core_id()		{ return m_core_id; }
 		vector<mem_request_t>* 	get_serviced_q()	{ return &m_core_serviced_q; }
+		vector<mem_request_t>* 	get_lower_level_request_q()	{ return m_lower_level_request_q; }
+
+		// Set insert-q 
+		void	set_lower_level_request_q(vector<mem_request_t> *lower_level_request_q)
+		{
+			m_lower_level_request_q		= lower_level_request_q;
+		}
+
+		// Insert requests
+		void	insert_incoming_request(enum opcode is_write, addr_type access_addr);
+
+		bool	request_all_finished()			{ return (m_num_accesses==m_num_serviced); }
+
+		// _STAT_
+		void	print_stats();
 
 	private:
 		int m_core_id;
-		vector<mem_request_t> m_core_serviced_q;
+		vector<mem_request_t> 	m_core_serviced_q;
+
+		// This is where a 'MISS' request will be requested to
+		vector<mem_request_t>	*m_lower_level_request_q;
+
+		// Stats
+		unsigned int		m_num_accesses;
+		unsigned long long 	m_access_latencies_accumulated;
+
+		unsigned int		m_num_serviced;
+		bool			m_all_requests_serviced;
 };
 
 class Cache {
@@ -131,7 +165,7 @@ class Cache {
 		void				advance_one_incoming_request();
 		void				advance_one_serviced_request();
 		// Insert-to-queue
-		void				insert_incoming_request(int req_core_id, enum opcode is_write, addr_type access_addr);
+		//void				insert_incoming_request(int req_core_id, enum opcode is_write, addr_type access_addr);
 
 
 		// Servicing requests
@@ -193,9 +227,9 @@ class Cache {
 		vector<mem_request_t>	*m_lower_level_request_q;
 
 		// Stats		
-		unsigned int	m_num_accesses;
-		unsigned int	m_num_hits;
-		unsigned int	m_num_misses;
+		unsigned int		m_num_accesses;
+		unsigned int		m_num_hits;
+		unsigned int		m_num_misses;
 };
 
 
