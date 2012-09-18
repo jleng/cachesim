@@ -122,8 +122,7 @@ int main(int argc, char* argv[]) {
                         printf("[Cpu_Cycle=%lld][TraceCycle=%lld]\n", cpu_cycle, trace_cycle);
                         printf("\n\n-----------------------<Start> Cycle=%lld--------------------\n", cpu_cycle);
                         #endif
-
-                        #ifdef _BOTH_L1_L2_
+                      
                         Core_0.advance_cycle();
                         L2->advance_cycle();
                         L1->advance_cycle();
@@ -132,17 +131,6 @@ int main(int argc, char* argv[]) {
                         L1->print_cache_block_status();
                         L2->print_queue_status();
                         L2->print_cache_block_status();
-                        #endif
-
-                        #else   // Only L1
-
-                        Core_0.advance_cycle();
-                        L1->advance_cycle();
-                        #ifdef _DEBUG_
-                        L1->print_queue_status();
-                        L1->print_cache_block_status();
-                        #endif
-
                         #endif
 
                         cpu_cycle++;
@@ -163,14 +151,10 @@ int main(int argc, char* argv[]) {
                 #ifdef _DEBUG_
                 printf("[CPU-Cycle=%lld]\n", cpu_cycle);
                 #endif
-                #ifdef _BOTH_L1_L2_
+
                 Core_0.advance_cycle();
                 L2->advance_cycle();
                 L1->advance_cycle();
-                #else   // Only L1
-                Core_0.advance_cycle();
-                L1->advance_cycle();
-                #endif
 
                 cpu_cycle++;
         }
@@ -179,14 +163,14 @@ int main(int argc, char* argv[]) {
 
         printf("Current CPU-CYcle=%lld\n", cpu_cycle);
 
-        #ifdef _BOTH_L1_L2_
+
         Core_0.print_stats();
         L1->print_stats();
         L2->print_stats();
-        #else
-        Core_0.print_stats();
-        L1->print_stats();
-        #endif
+
+
+
+
 
 
 }
