@@ -156,9 +156,87 @@ class Core {
 		bool			m_all_requests_serviced;
 };
 
+
+class bank_alloc_unit_for_PARTITION_mode
+{
+	public:	
+		bank_alloc_unit_for_PARTITION_mode(int L2_cache_size, int num_of_banks, int block_size, int assoc);
+
+		addr_type	get_bank_addr(addr_type this_addr)
+		{
+			// Use below if addr => [BankAddr]:[SetIdx]:[BlockOffset]
+			//return ((this_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (m_num_of_banks-1));
+			// Use below if addr => [SetIdx]:[BankAddr]:[BlockOffset]
+			return ((this_addr>>m_block_offset_bits) & (m_num_of_banks-1));
+
+		}
+
+		addr_type	get_bank_id(int core_id, addr_type access_addr)
+		{
+			int	bank_id_offset	= 0;
+			for(int i=0; i<core_id; i++)
+			{
+				bank_id_offset	+= m_num_banks_per_core[i];
+				#ifdef _DEBUG_
+				printf("[ReqCoreID=%d]BankOffset=%d ... as Core-%d's BankNum=%d\n", core_id, bank_id_offset, i, m_num_banks_per_core[i]);
+				#endif
+			}
+			int	bank_idx	= ((access_addr>>m_block_offset_bits) & (m_num_banks_per_core[core_id]-1));
+
+			#ifdef _SANITY_
+			assert( (bank_id_offset+bank_idx)<16 );
+			assert( bank_idx < m_num_banks_per_core[core_id]);
+			#endif
+			return	(bank_id_offset + bank_idx);
+		}
+
+		// Access methods
+		vector<mem_request_t>* get_redirection_q()		{ return &m_L1_to_L2_redirection_q; }
+		void	set_lower_level_request_q(int bank_id, vector<mem_request_t> *lower_level_request_q)
+		{
+			m_lower_level_request_q[bank_id] = lower_level_request_q;
+		}
+		void	set_bank_partition_number_among_cores(int n0, int n1, int n2, int n3)
+		{
+			m_num_banks_per_core[0]	= n0;
+			m_num_banks_per_core[1]	= n1;
+			m_num_banks_per_core[2]	= n2;
+			m_num_banks_per_core[3]	= n3;
+		}
+		void	advance_cycle();
+
+		void	print_queue_status();
+	private:
+		int	m_L2_cache_size;
+		int	m_num_of_banks;
+		int	m_block_size;
+		int	m_assoc;
+
+		int	m_per_bank_cache_size;
+		int	m_per_bank_num_of_lines;
+		int	m_per_bank_num_of_sets;
+
+		int	m_all_num_of_lines;
+		int	m_all_num_of_sets;
+
+		int	m_block_offset_bits;
+		int	m_set_bits_for_all;
+		int	m_set_bits_per_bank;
+
+		int	m_bank_offset_bits;
+
+		int	m_num_banks_per_core[NUM_OF_CORES];
+		// Sorting Queue
+		vector<mem_request_t> m_L1_to_L2_redirection_q;
+
+		// This is where a 'MISS' request will be requested to
+		vector<mem_request_t>	*m_lower_level_request_q[L2_NUM_OF_BANKS];
+};
+
+
 class Cache {
 	public:
-		Cache(int core_id, int cache_level, int num_banks, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name); //, vector<mem_request_t> *upper_level_serviced_q, vector<mem_request_t> *lower_level_req_q);
+		Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name); //, vector<mem_request_t> *upper_level_serviced_q, vector<mem_request_t> *lower_level_req_q);
 
 		// 'Cycle-level'
 		void				advance_cycle();
@@ -185,9 +263,15 @@ class Cache {
 		{
 			m_lower_level_request_q		= lower_level_request_q;
 		}
+		void	set_bank_alloc_unit(bank_alloc_unit_for_PARTITION_mode* bank_alloc_unit)
+		{
+			m_bank_alloc_unit	= bank_alloc_unit;
+		}
+
+
 		vector<mem_request_t>* get_incoming_request_q()	{ return &m_in_request_q; }
 		vector<mem_request_t>* get_serviced_q()		{ return &m_serviced_q; }
-
+		bank_alloc_unit_for_PARTITION_mode* get_bank_alloc_unit() { return m_bank_alloc_unit; }
 		// Printing
 		void print_stats();
 		void print_cache_info();
@@ -197,7 +281,7 @@ class Cache {
 		// Configurable options
 		int	m_core_id;
 		int 	m_size; //cache size 16KB for l1 and 1MB for l2
-		int 	m_num_banks; // l1:1, l2: 16
+		int	m_bank_id;
 		int 	m_block_size; //32B for l1 and 128B for l2
 		int 	m_associativity; // l1: 2; l2: 2
 		int 	m_hit_latency; // l1: 5; l2:20
@@ -225,6 +309,9 @@ class Cache {
 
 		// This is where a 'MISS' request will be requested to
 		vector<mem_request_t>	*m_lower_level_request_q;
+
+		// Connect to bank-alloc-unit
+		bank_alloc_unit_for_PARTITION_mode*	m_bank_alloc_unit;	
 
 		// Stats		
 		unsigned int		m_num_accesses;

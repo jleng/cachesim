@@ -13,9 +13,21 @@ unsigned long long	cpu_cycle = 0;
 
 //vector<mem_request_t>	core_0_serviced_req_q;
 
-int num_cores=4;
-int L1_size=32*1024;
-int L2_size=1024*1024;
+int 	num_cores	= NUM_OF_CORES;	// Defined in mish.h
+int 	L1_size		= 32*1024;
+int 	L2_size		= 1024*1024;
+
+// (TODO)
+int	L1_block_size	= 16;
+int	L1_assoc	= 2;
+int	L2_block_size	= 128;
+int	L2_assoc	= 2;
+
+int	L1_hit_latency	= 5;
+int	L1_miss_latency	= 20;
+int	L2_hit_latency	= 20;
+int	L2_miss_latency	= 200;	
+
 vector<int> L2_number_of_banks_each_core;
 vector<string> trace_file_name_each_core;
 vector<ifstream*> trace_file_each_core;
@@ -62,26 +74,107 @@ int main(int argc, char* argv[]) {
 		cout << left << setw(40) << "trace file name = " <<trace_file_name_each_core[i] << endl;
 	}
 
-				
+	#ifdef _SANITY_
+	int	total_banks = 0;
+	for(int i=0; i<num_cores; i++)
+	{
+		total_banks += L2_number_of_banks_each_core[i];
+	}
+	assert(total_banks==L2_NUM_OF_BANKS);
+	#endif				
 
 
 	//============================================================
 	// A. Instantiate Core & Cache
 	//============================================================
-        // Instantiate Modules
-        Core Core_0(/*core_id*/0);
-        Cache *L1       = new Cache(0, 1, 1, L1_size*1024, 32, 2, 5, 20,  "Level 1");
-        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, L2_size*1024, 128, 2, 20, 200, "Level 2");
+	//-------------------------------------------
+	// a. Instantiate Cores & L1 caches
+	//-------------------------------------------
+	Core	*core[NUM_OF_CORES];
+	Cache	*L1[NUM_OF_CORES];
+	for(unsigned i=0; i<NUM_OF_CORES; i++)
+	{
+		core[i]	= new	Core(i);
+        	L1[i]	= new 	Cache(i, 1, 0, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1");
+	}
+	#ifdef _SANITY_
+	assert((L2_size%L2_NUM_OF_BANKS)==0);
+	#endif
+	//-------------------------------------------
+	// b. Instantiate L2 cache-banks 
+	//-------------------------------------------
+	Cache	*L2[L2_NUM_OF_BANKS];
+	int	L2_size_per_bank	= (L2_size/L2_NUM_OF_BANKS);
+	// Bank-Partitioning Unit for "Partition" mode (equal/unequal)
+	bank_alloc_unit_for_PARTITION_mode	bank_alloc_unit(L2_size, L2_NUM_OF_BANKS, L2_block_size/*LineSize*/, L2_assoc);
+	bank_alloc_unit.set_bank_partition_number_among_cores(L2_number_of_banks_each_core[0], L2_number_of_banks_each_core[1],L2_number_of_banks_each_core[2],L2_number_of_banks_each_core[3]);
 
-        // Connect Core_0->L1
-        Core_0.set_lower_level_request_q        ( L1->get_incoming_request_q() );
-        L1->set_upper_level_serviced_q          ( Core_0.get_serviced_q() );
-        L1->set_lower_level_request_q           ( L2->get_incoming_request_q() );
-        // Connect L1->L2
-        L2->set_upper_level_serviced_q  	( L1->get_serviced_q() );
-        L2->set_lower_level_request_q   	( NULL);
+	for(unsigned i=0; i<L2_NUM_OF_BANKS; i++)
+	{
+		L2[i]	= new	Cache(726, 2, i, L2_size_per_bank, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2");
+		L2[i]->set_bank_alloc_unit(&bank_alloc_unit);
+	}
+	//============================================================
+	// B. Connect Cores->L1->L2
+	//============================================================
+	//-------------------------------------------
+        // a. Connect Cores to its L1-caches (common to all mode)
+	//-------------------------------------------
+	for(unsigned i=0; i<NUM_OF_CORES; i++)
+	{
+		core[i]	->set_lower_level_request_q	( L1[i]->get_incoming_request_q() 	);
+		L1[i]	->set_upper_level_serviced_q	( core[i]->get_serviced_q()		);
+		//L1[i]	->set_lower_level_request_q	( L2[i]->get_incoming_request_q()	);	// Need to modify 
+		L1[i]	->set_lower_level_request_q	( bank_alloc_unit.get_redirection_q() );	// NEWER!
+	}
 
+	//-------------------------------------------
+        // b. Connect BankAllocUnit->L2->MEM
+	//-------------------------------------------
+	for(unsigned i=0; i<L2_NUM_OF_BANKS; i++)
+	{
+		// Connect 'bank_alloc_unit' -> L2
+		bank_alloc_unit.set_lower_level_request_q ( i, L2[i]->get_incoming_request_q() );
+		// Connect L2->MEM
+		L2[i]->set_lower_level_request_q	(NULL);
+	}
+	//-------------------------------------------
+        // c. Connect BankAllocUnit <- L2
+	//-------------------------------------------
+	int	bank_offset	= 0;
+	#ifdef _SANITY_
+	int	last_bank_assigned = 0;
+	#endif
+	for(int i=0; i<NUM_OF_CORES; i++)
+	{
+		cout<<"Core_"<<i<<" has "<<L2_number_of_banks_each_core[i]<<" banks allocated!"<<endl;
+		printf("Bank_Offset=%d\n", bank_offset);
+		for(int j=bank_offset; j<(bank_offset+L2_number_of_banks_each_core[i]); j++)
+		{
+			printf("\n Bank-%d is assiged to L1_of_Core-%d\n", j, i);
+			L2[j]->set_upper_level_serviced_q	(L1[i]->get_serviced_q() );
+			#ifdef _SANITY_
+			assert( j < L2_NUM_OF_BANKS);
+			last_bank_assigned	= j;
+			#endif
+		}
+		bank_offset	+= L2_number_of_banks_each_core[i];
+	}
+	#ifdef _SANITY_
+	assert(last_bank_assigned==(L2_NUM_OF_BANKS-1));
+	#endif
 
+	// HOILI
+	printf("\n\n===========================================\n");
+	printf("Addr=%x BankAddr=%d\n", 0x116,bank_alloc_unit.get_bank_addr(0x116));
+	printf("Addr=%x BankAddr=%d\n", 0x226,bank_alloc_unit.get_bank_addr(0x226));
+	printf("Addr=%x BankAddr=%d\n", 0x336,bank_alloc_unit.get_bank_addr(0x336));
+	printf("Addr=%x BankAddr=%d\n", 0xCD6,bank_alloc_unit.get_bank_addr(0xCD6));
+	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[0]->get_bank_alloc_unit()->get_bank_addr(0x116));
+	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[3]->get_bank_alloc_unit()->get_bank_addr(0x226));
+	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[5]->get_bank_alloc_unit()->get_bank_addr(0x336));
+	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[13]->get_bank_alloc_unit()->get_bank_addr(0xCD6));
+	
 	//============================================================
 	// B. Get trace and execute Core & Cycle
 	//============================================================
@@ -91,14 +184,16 @@ int main(int argc, char* argv[]) {
 	// read a line from each trace file. each time find a trace with smallest cycle number to feed the simulator
 	//============================================================
 
+	// (TODO) Temporarily enforced below to test
+	//num_cores	= 1;
 
-num_cores	= 1;
 	int num_lines;
 	// Trace information
 	vector<addr_type> 		trace_addr;
 	vector<addr_type> 		trace_cycle;
 	vector<enum opcode>		is_STORE;
-	vector<bool>					core_still_have_trace; // if one core has trace to read
+	vector<bool>			core_still_have_trace; // if one core has trace to read
+
 	bool all_trace_parsed = false;
 	for ( int i=0; i<num_cores; i++) {
 		string line;
@@ -153,9 +248,21 @@ num_cores	= 1;
 				 * *********************/
 				while(cpu_cycle != smallest_cycle)
 				{
-		                        Core_0.advance_cycle();
-                		        L2->advance_cycle();
-		                        L1->advance_cycle();
+					for(int i=0; i<NUM_OF_CORES; i++)
+					{
+						core[i]->advance_cycle();
+					}
+		                        //core[0]->advance_cycle();
+					// Execute all banks	
+					for(int i=0; i<L2_NUM_OF_BANKS; i++)
+					{
+                		        	L2[i]->advance_cycle();
+					}
+					for(int i=0; i<NUM_OF_CORES; i++)
+					{
+			                        L1[i]->advance_cycle();
+					}
+					bank_alloc_unit.advance_cycle();
 					#ifdef _DEBUG_
 					printf("[Executing Cache Cycles=%lld\n", cpu_cycle);
 					#endif
@@ -169,9 +276,35 @@ num_cores	= 1;
 				switch(core_id)
 				{		
 					case	0:
+			               		core[0]->insert_incoming_request(is_STORE[i], trace_addr[i]);
+						#ifdef _DEBUG_
 						printf("[MSRHU][InsertRequest][Addr=%x(%d)][Cycle=%d][STORE=%d][CoreID=%d]\n", trace_addr[i], trace_addr[i], trace_cycle[i], is_STORE[i],i);
-			               		Core_0.insert_incoming_request(is_STORE[i], trace_addr[i]);
-					        Core_0.print_stats();
+					        core[0]->print_stats();
+						#endif
+						break;
+
+					case	1:
+			               		core[1]->insert_incoming_request(is_STORE[i], trace_addr[i]);
+						#ifdef _DEBUG_
+						printf("[MSRHU][InsertRequest][Addr=%x(%d)][Cycle=%d][STORE=%d][CoreID=%d]\n", trace_addr[i], trace_addr[i], trace_cycle[i], is_STORE[i],i);
+					        core[1]->print_stats();
+						#endif
+						break;
+
+					case	2:
+			               		core[2]->insert_incoming_request(is_STORE[i], trace_addr[i]);
+						#ifdef _DEBUG_
+						printf("[MSRHU][InsertRequest][Addr=%x(%d)][Cycle=%d][STORE=%d][CoreID=%d]\n", trace_addr[i], trace_addr[i], trace_cycle[i], is_STORE[i],i);
+					        core[2]->print_stats();
+						#endif
+						break;
+
+					case	3:
+			               		core[3]->insert_incoming_request(is_STORE[i], trace_addr[i]);
+						#ifdef _DEBUG_
+						printf("[MSRHU][InsertRequest][Addr=%x(%d)][Cycle=%d][STORE=%d][CoreID=%d]\n", trace_addr[i], trace_addr[i], trace_cycle[i], is_STORE[i],i);
+					        core[3]->print_stats();
+						#endif
 						break;
 
 					default:
@@ -180,7 +313,6 @@ num_cores	= 1;
 						break;
 
 				}
-				//L1[core_id]->insert_incoming_request(0, is_STORE, trace_addr);
 				/* *************************
 				 * read the next trace info for this core
 				 * *********************/
@@ -228,26 +360,78 @@ num_cores	= 1;
 				all_trace_parsed = false;
 		}	
 	}
+/*
         // Execute whatever's left in 'incoming-Queue'
-        while(Core_0.request_all_finished()==false)
+        while(core[0]->request_all_finished()==false)
         {
-                Core_0.advance_cycle();
-                L2->advance_cycle();
-                L1->advance_cycle();
+                core[0]->advance_cycle();
+
+
+		for(int i=0; i<L2_NUM_OF_BANKS; i++)
+		{
+	        	L2[i]->advance_cycle();
+		}
+
+                //L2[0]->advance_cycle();
+                L1[0]->advance_cycle();	
+		bank_alloc_unit.advance_cycle();
 
                 cpu_cycle++;
         }
-	
+*/
+	bool	all_finished	= true;
+	for(int i=0; i<NUM_OF_CORES; i++)
+	{
+		if(core[i]->request_all_finished()==false)
+		{
+			all_finished	= false;
+			break;
+		}
+	}
+	while(all_finished==false)
+	{
+		for(int i=0; i<NUM_OF_CORES; i++)
+		{
+			core[i]->advance_cycle();
+		}
+                //core[0]->advance_cycle();
+		// Execute all banks	
+		for(int i=0; i<L2_NUM_OF_BANKS; i++)
+		{
+	        	L2[i]->advance_cycle();
+		}
+		for(int i=0; i<NUM_OF_CORES; i++)
+		{
+                        L1[i]->advance_cycle();
+		}
+		bank_alloc_unit.advance_cycle();
+		cpu_cycle++;
+
+		// Check if finished
+		all_finished	=  true;
+		for(int i=0; i<NUM_OF_CORES; i++)
+		{
+			if(core[i]->request_all_finished()==false)
+			{
+				all_finished	= false;
+				break;
+			}
+		}
+	}
 	// Finished execution
 	printf("\n\n[End of Execution]Current CPU-CYcle=%lld\n\n", cpu_cycle);
-        Core_0.print_stats();
-	L1->print_stats();
-	L2->print_stats();
-/*
-	L1->print_queue_status();
-	L1->print_cache_block_status();
-	L2->print_queue_status();
-	L2->print_cache_block_status();
-*/
+
+	for(int i=0; i<NUM_OF_CORES; i++)
+	{
+		core[i]->print_stats();
+		L1[i]->print_stats();
+	}
+	for(int i=0; i<L2_NUM_OF_BANKS; i++)
+	{
+		L2[i]->print_stats();
+	}
+//        core[0]->print_stats();
+//	L1[0]->print_stats();
+//	L2[0]->print_stats();
 
 }

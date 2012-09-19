@@ -11,9 +11,94 @@ using namespace std;
 
 
 
+bank_alloc_unit_for_PARTITION_mode::bank_alloc_unit_for_PARTITION_mode(int L2_cache_size, int num_of_banks, int block_size, int assoc)
+{
+	m_L2_cache_size		= L2_cache_size;
+	m_num_of_banks		= num_of_banks;
+	m_block_size		= block_size;
+	m_assoc			= assoc;
 
-//Cache::Cache(int core_id, int cache_level, int num_banks, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name, vector<mem_request_t> *upper_level_serviced_q, vector<mem_request_t> *lower_level_req_q): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_num_banks(num_banks), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name)
-Cache::Cache(int core_id, int cache_level, int num_banks, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_num_banks(num_banks), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name)
+
+	m_per_bank_cache_size	= (L2_cache_size/num_of_banks);
+	m_per_bank_num_of_lines	= (m_per_bank_cache_size/block_size);
+	m_per_bank_num_of_sets	= (m_per_bank_num_of_lines)/assoc;
+
+
+	// Overall L2-cache	
+	m_all_num_of_lines	= L2_cache_size/block_size;
+	m_all_num_of_sets	= m_all_num_of_lines/assoc;
+
+	// Common
+	m_block_offset_bits	= log2(block_size);
+	m_set_bits_for_all	= log2(m_all_num_of_sets);
+	m_set_bits_per_bank	= log2(m_per_bank_num_of_sets);
+
+	m_bank_offset_bits	= log2(num_of_banks);
+
+	printf("Per_Bank_CacheSize=%d\n", m_per_bank_cache_size);
+	printf("Per_Bank_Num_of_Lines=%d\n", m_per_bank_num_of_lines);
+	printf("Per_Bank_Num_of_Sets=%d\n", m_per_bank_num_of_sets);
+
+	printf("All_NumLines=%d\n", m_all_num_of_lines);
+	printf("All_NumSets=%d\n", m_all_num_of_sets);
+	printf("BlockOffsetBits=%d\n", m_block_offset_bits);
+	printf("SetBits_ALL=%d\n", m_set_bits_for_all);
+	printf("SetBits_PerBank=%d\n", m_set_bits_per_bank);
+
+	#ifdef _SANITY_
+	assert((L2_cache_size%num_of_banks)==0);
+	assert(m_per_bank_num_of_lines==((L2_cache_size/block_size)/num_of_banks));
+	assert(m_all_num_of_sets==(m_per_bank_num_of_sets*num_of_banks));
+	assert(m_set_bits_for_all==(m_set_bits_per_bank+m_bank_offset_bits));
+	#endif
+}
+
+void bank_alloc_unit_for_PARTITION_mode::print_queue_status()
+{
+	printf("\n\n[Current Cycle=%lld]\n",cpu_cycle);
+
+	cout<<"[Redirection Queue Status] Size = "<<m_L1_to_L2_redirection_q.size()<<endl;
+	vector<mem_request_t>::iterator it;
+	for(it=m_L1_to_L2_redirection_q.begin(); it<m_L1_to_L2_redirection_q.end(); it++)
+	{
+		if((*it).m_opcode==STORE)		printf("[Opcode = ST]");
+		else{	assert((*it).m_opcode==LOAD);	printf("[Opcode = LD]"); };
+		
+		printf("[WB=%d][Req_Core=%d][AccessAddr=%8x][CyclesLeft=%d][Requested_Time=%d]\n", (*it).m_is_writeback,(*it).m_core_id, (*it).m_access_addr, (*it).m_cycles_left_for_service, (*it).m_first_request_time);		
+	}
+	printf("\n");
+}
+
+void bank_alloc_unit_for_PARTITION_mode::advance_cycle()
+{
+	// If a request needs to be redirected to L2 ...
+	if(m_L1_to_L2_redirection_q.size()>0)
+	{
+		while(!m_L1_to_L2_redirection_q.empty())
+		{
+			mem_request_t	this_request	= m_L1_to_L2_redirection_q.back();
+			int		req_core_id	= this_request.m_core_id;
+			addr_type	req_access_addr	= this_request.m_access_addr;
+			int		req_bank_id	= get_bank_id(req_core_id, req_access_addr);
+			// Insert to corresponding bank
+			m_lower_level_request_q[req_bank_id]->insert(m_lower_level_request_q[req_bank_id]->begin(), this_request);
+
+			m_L1_to_L2_redirection_q.pop_back();
+		}
+	}
+	#ifdef _DEBUG_
+	else
+	{
+		printf("Redirection Q is EMPTY!!\n");
+	}
+	#endif	
+	#ifdef _SANITY_
+	assert(m_L1_to_L2_redirection_q.size()==0);
+	#endif
+}
+
+
+Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_bank_id(bank_id), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name)
 
 {
 	// Get num of lines in cache
@@ -377,7 +462,7 @@ void	Cache::advance_cycle()
 
 void Cache::print_stats()
 {
-	printf("[Core-%d][L%d Cache][Stats]\n", m_core_id, m_cache_level);
+	printf("[Core-%d][L%d Cache][BankId=%d][Stats]\n", m_core_id, m_cache_level,m_bank_id);
 	printf("- Total Accesses	= %d\n", m_num_accesses);
 	printf("- Total Hits		= %d\n", m_num_hits);
 	printf("- Total Misses		= %d\n", m_num_misses);
@@ -440,15 +525,21 @@ void Cache::print_queue_status()
 }
 
 void Cache::print_cache_info() {
+	printf("\n\n==============================================\n");
 	cout << left << setw(20) << "Cache: " << m_name << endl;
 	cout << setw(20) << "Size: " << m_size << "KB" << endl;
 	cout << setw(20) << "Block Size: " <<m_block_size << "B" << endl;
 	cout << setw(20) << "Associativity: " << m_associativity << endl;
-	cout << setw(20) << "Number of Banks: " << m_num_banks << endl;
+	cout << setw(20) << "Bank-ID: " << m_bank_id << endl;
 	cout << setw(20) << "Hit Latency: " << m_hit_latency << " cycles" << endl;
 	cout << setw(20) << "Miss Latency: " <<m_miss_latency << " cycles" << endl;
-	printf("\n\n");
+	printf("\n");
 
+	printf("Num_of_Lines	  = %d\n", m_num_of_lines);
+	printf("Num_of_Sets	  = %d\n", m_num_of_sets);
+	printf("Block_Offset_Bits = %d\n", m_block_offset_bits);
+	printf("Set_Bits	  = %d\n", m_set_bits);
+	printf("==============================================\n");
 }
 
 tag_array::~tag_array()
