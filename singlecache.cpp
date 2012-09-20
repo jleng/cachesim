@@ -12,6 +12,19 @@ using namespace std;
 unsigned long long	cpu_cycle = 0;
 
 //vector<mem_request_t>	core_0_serviced_req_q;
+int 	L1_size		= 32*1024;
+int 	L2_size		= 1024*1024/4;
+
+// (TODO)
+int	L1_block_size	= 16;
+int	L1_assoc	= 2;
+int	L2_block_size	= 128;
+int	L2_assoc	= 2;
+
+int	L1_hit_latency	= 5;
+int	L1_miss_latency	= 20;
+int	L2_hit_latency	= 20;
+int	L2_miss_latency	= 200;	
 
 
 int main(int argc, char* argv[]) {
@@ -45,8 +58,8 @@ int main(int argc, char* argv[]) {
 	//============================================================
        // Instantiate Modules
         Core Core_0(/*core_id*/0);
-        Cache *L1       = new Cache(0, 1, 1, 16384, 32, 2, 5, 20,  "Level 1");
-        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 524288, 128, 2, 20, 200, "Level 2");
+        Cache *L1       = new Cache(0, 1, 1, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1");
+        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, L2_size, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2");
 
         // Connect Core_0->L1
         Core_0.set_lower_level_request_q        ( L1->get_incoming_request_q() );
