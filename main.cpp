@@ -170,10 +170,10 @@ int main(int argc, char* argv[]) {
 	printf("Addr=%x BankAddr=%d\n", 0x226,bank_alloc_unit.get_bank_addr(0x226));
 	printf("Addr=%x BankAddr=%d\n", 0x336,bank_alloc_unit.get_bank_addr(0x336));
 	printf("Addr=%x BankAddr=%d\n", 0xCD6,bank_alloc_unit.get_bank_addr(0xCD6));
-	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[0]->get_bank_alloc_unit()->get_bank_addr(0x116));
-	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[3]->get_bank_alloc_unit()->get_bank_addr(0x226));
-	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[5]->get_bank_alloc_unit()->get_bank_addr(0x336));
-	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[13]->get_bank_alloc_unit()->get_bank_addr(0xCD6));
+	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[0]->get_bank_alloc_unit()->get_bank_addr(0x116));
+	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[3]->get_bank_alloc_unit()->get_bank_addr(0x226));
+	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[5]->get_bank_alloc_unit()->get_bank_addr(0x336));
+	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[13]->get_bank_alloc_unit()->get_bank_addr(0xCD6));
 	//Jingwen: test bank address generation
 #ifdef _TEST_BANK_ADDR_UNIT_
 	for (int i; i<L2_size_per_bank; i++) {
