@@ -11,13 +11,13 @@ using namespace std;
 
 
 
-bank_alloc_unit_for_PARTITION_mode::bank_alloc_unit_for_PARTITION_mode(int L2_cache_size, int num_of_banks, int block_size, int assoc)
+bank_alloc_unit::bank_alloc_unit(int L2_cache_size, int num_of_banks, int block_size, int assoc, bool L2_banks_are_shared)
 {
 	m_L2_cache_size		= L2_cache_size;
 	m_num_of_banks		= num_of_banks;
 	m_block_size		= block_size;
 	m_assoc			= assoc;
-
+	m_L2_banks_are_shared	= L2_banks_are_shared;
 
 	m_per_bank_cache_size	= (L2_cache_size/num_of_banks);
 	m_per_bank_num_of_lines	= (m_per_bank_cache_size/block_size);
@@ -34,16 +34,16 @@ bank_alloc_unit_for_PARTITION_mode::bank_alloc_unit_for_PARTITION_mode(int L2_ca
 	m_set_bits_per_bank	= log2(m_per_bank_num_of_sets);
 
 	m_bank_offset_bits	= log2(num_of_banks);
-
+	#ifdef _DEBUG_
 	printf("Per_Bank_CacheSize=%d\n", m_per_bank_cache_size);
 	printf("Per_Bank_Num_of_Lines=%d\n", m_per_bank_num_of_lines);
 	printf("Per_Bank_Num_of_Sets=%d\n", m_per_bank_num_of_sets);
-
 	printf("All_NumLines=%d\n", m_all_num_of_lines);
 	printf("All_NumSets=%d\n", m_all_num_of_sets);
 	printf("BlockOffsetBits=%d\n", m_block_offset_bits);
 	printf("SetBits_ALL=%d\n", m_set_bits_for_all);
 	printf("SetBits_PerBank=%d\n", m_set_bits_per_bank);
+	#endif
 
 	#ifdef _SANITY_
 	assert((L2_cache_size%num_of_banks)==0);
@@ -53,7 +53,7 @@ bank_alloc_unit_for_PARTITION_mode::bank_alloc_unit_for_PARTITION_mode(int L2_ca
 	#endif
 }
 
-void bank_alloc_unit_for_PARTITION_mode::print_queue_status()
+void bank_alloc_unit::print_queue_status()
 {
 	printf("\n\n[Current Cycle=%lld]\n",cpu_cycle);
 
@@ -69,7 +69,39 @@ void bank_alloc_unit_for_PARTITION_mode::print_queue_status()
 	printf("\n");
 }
 
-void bank_alloc_unit_for_PARTITION_mode::advance_cycle()
+void service_report_unit::advance_cycle()
+{
+	if(m_L2_to_L1_redirection_q.size()>0)
+	{
+		while(!m_L2_to_L1_redirection_q.empty())
+		{
+			mem_request_t	this_request	= m_L2_to_L1_redirection_q.back();
+			int		req_core_id	= this_request.m_core_id;
+			addr_type	req_access_addr	= this_request.m_access_addr;
+			#ifdef _SANITY_
+			assert(req_core_id<NUM_OF_CORES);
+			assert(req_access_addr!=0x0);
+			#endif
+
+			// Insert to corresponding bank
+			m_upper_level_serviced_q[req_core_id]->insert(m_upper_level_serviced_q[req_core_id]->begin(), this_request);
+
+			// Erase redirected request
+			m_L2_to_L1_redirection_q.pop_back();
+		}
+	}
+	#ifdef _DEBUG_
+	else
+	{
+		printf("Redirection Q is EMPTY!!\n");
+	}
+	#endif	
+	#ifdef _SANITY_
+	assert(m_L2_to_L1_redirection_q.size()==0);
+	#endif
+}
+
+void bank_alloc_unit::advance_cycle()
 {
 	// If a request needs to be redirected to L2 ...
 	if(m_L1_to_L2_redirection_q.size()>0)
@@ -79,7 +111,17 @@ void bank_alloc_unit_for_PARTITION_mode::advance_cycle()
 			mem_request_t	this_request	= m_L1_to_L2_redirection_q.back();
 			int		req_core_id	= this_request.m_core_id;
 			addr_type	req_access_addr	= this_request.m_access_addr;
-			int		req_bank_id	= get_bank_id(req_core_id, req_access_addr);
+			int		req_bank_id	= -1;
+			// Partitioned L2
+			if(m_L2_banks_are_shared==false)
+			{
+				req_bank_id	= get_bank_id_when_partitioned(req_core_id, req_access_addr);
+			}
+			// Shared L2
+			else
+			{
+				req_bank_id	= get_bank_id_when_shared(req_core_id, req_access_addr);
+			}
 			// Insert to corresponding bank
 			m_lower_level_request_q[req_bank_id]->insert(m_lower_level_request_q[req_bank_id]->begin(), this_request);
 
@@ -98,7 +140,7 @@ void bank_alloc_unit_for_PARTITION_mode::advance_cycle()
 }
 
 
-Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_bank_id(bank_id), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name)
+Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name, bool L2_banks_are_shared): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_bank_id(bank_id), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name), m_L2_banks_are_shared(L2_banks_are_shared)
 
 {
 	// Get num of lines in cache
@@ -127,7 +169,7 @@ Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int bloc
 enum cache_access_status Cache::access(int req_core_id, unsigned is_write, addr_type access_addr, unsigned cycle_time)
 {
 	addr_type	set_idx 	= get_set_index(access_addr);
-	addr_type	tag_value	= get_tag_value(access_addr);
+	addr_type	tag_value	= get_tag_value(req_core_id, access_addr);
 	#ifdef _DEBUG_
 	printf("[AccessAddr=%8x] SetIdx=%x Tag=%x\n", access_addr,set_idx, tag_value);
 	#endif
@@ -206,7 +248,7 @@ void	Cache::advance_one_incoming_request()
 if(1)
 {
 	addr_type	set_idx 	= get_set_index(req_access_addr);
-	addr_type	tag_value	= get_tag_value(req_access_addr);
+	addr_type	tag_value	= get_tag_value(req_core_id, req_access_addr);
 	printf("\n[DEBUG][L%d][STORE=%d][HIT=%d] Addr=%x(%d) QUERIED at CYCLE=%lld\n",m_cache_level, req_op, result, req_access_addr, req_access_addr, cpu_cycle);
 	printf("SetIdx=%x Tag=%x\n\n", set_idx, tag_value);
 
@@ -342,7 +384,7 @@ void	Cache::advance_one_serviced_request()
 				addr_type	serviced_init_req_time	= (*it).m_first_request_time;
 
 				addr_type	set_idx 		= get_set_index(serviced_access_addr);
-				addr_type	tag_value		= get_tag_value(serviced_access_addr);
+				addr_type	tag_value		= get_tag_value(serviced_core_id, serviced_access_addr);
 				#ifdef _DEBUG_
 				printf("\n\n[SERVICED_Q_latency_is_ZERO!!!][L%d-cache][Cycle=%lld] [Opcode=%d][AccessAddr=%8x][InitReqTime=%lld] SetIdx=%x Tag=%x\n", m_cache_level,cpu_cycle,serviced_opcode, serviced_access_addr, serviced_init_req_time, set_idx, tag_value);
 				print_queue_status();

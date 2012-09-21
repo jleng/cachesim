@@ -61,6 +61,8 @@ struct cache_block_t {
         m_fill_time=0;
         m_last_access_time=0;
         m_status=INVALID;
+	
+	m_core_id	= 726;
     }
     void allocate( addr_type tag, addr_type block_addr, unsigned cycle_time )
     {
@@ -77,6 +79,7 @@ struct cache_block_t {
         m_fill_time	= cycle_time;
     }
 
+    int			m_core_id;	// Used 'ONLY' for shared
     addr_type		m_tag;
     addr_type   	m_block_addr;
     unsigned    	m_alloc_time;
@@ -156,22 +159,34 @@ class Core {
 		bool			m_all_requests_serviced;
 };
 
-
-class bank_alloc_unit_for_PARTITION_mode
+class service_report_unit
 {
-	public:	
-		bank_alloc_unit_for_PARTITION_mode(int L2_cache_size, int num_of_banks, int block_size, int assoc);
+	public:
+		service_report_unit(){	};
+		void	advance_cycle();
 
-		addr_type	get_bank_addr(addr_type this_addr)
+		// Access methods
+		vector<mem_request_t>* get_redirection_q()		{ return &m_L2_to_L1_redirection_q; }
+		void	set_upper_level_serviced_q(int core_id, vector<mem_request_t> *upper_level_serviced_q)
 		{
-			// Use below if addr => [BankAddr]:[SetIdx]:[BlockOffset]
-			//return ((this_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (m_num_of_banks-1));
-			// Use below if addr => [SetIdx]:[BankAddr]:[BlockOffset]
-			return ((this_addr>>m_block_offset_bits) & (m_num_of_banks-1));
-
+			m_upper_level_serviced_q[core_id] = upper_level_serviced_q;
 		}
 
-		addr_type	get_bank_id(int core_id, addr_type access_addr)
+	private:
+		// Sorting Queue
+		vector<mem_request_t> 	m_L2_to_L1_redirection_q;
+
+		// This is where a 'MISS' request will be requested to
+		vector<mem_request_t>	*m_upper_level_serviced_q[NUM_OF_CORES];
+
+};
+
+class bank_alloc_unit
+{
+	public:	
+		bank_alloc_unit(int L2_cache_size, int num_of_banks, int block_size, int assoc, bool L2_banks_are_shared);
+
+		addr_type	get_bank_id_when_partitioned(int core_id, addr_type access_addr)
 		{
 			int	bank_id_offset	= 0;
 			for(int i=0; i<core_id; i++)
@@ -181,13 +196,27 @@ class bank_alloc_unit_for_PARTITION_mode
 				printf("[ReqCoreID=%d]BankOffset=%d ... as Core-%d's BankNum=%d\n", core_id, bank_id_offset, i, m_num_banks_per_core[i]);
 				#endif
 			}
-			int	bank_idx	= ((access_addr>>m_block_offset_bits) & (m_num_banks_per_core[core_id]-1));
+			// Bank-selection an be selected differently as below
+			// _FINDME_
+			// 1. Below is the "NEWER" version of bank-idx calculation
+			int	bank_idx	= ((access_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (m_num_banks_per_core[core_id]-1));
+			// 2. (OLD) And below is the "OLDER" version of bank-idx calculation which caused all our trouble
+			//int	bank_idx	= ((access_addr>>m_block_offset_bits) & (m_num_banks_per_core[core_id]-1));
 
 			#ifdef _SANITY_
 			assert( (bank_id_offset+bank_idx)<16 );
 			assert( bank_idx < m_num_banks_per_core[core_id]);
 			#endif
 			return	(bank_id_offset + bank_idx);
+		}
+		addr_type	get_bank_id_when_shared(int core_id, addr_type access_addr)
+		{
+			int	bank_idx	= ((access_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (L2_NUM_OF_BANKS-1));
+
+			#ifdef _SANITY_
+			assert( bank_idx<16 );
+			#endif
+			return	bank_idx;
 		}
 
 		// Access methods
@@ -207,6 +236,7 @@ class bank_alloc_unit_for_PARTITION_mode
 
 		void	print_queue_status();
 	private:
+		bool	m_L2_banks_are_shared;
 		int	m_L2_cache_size;
 		int	m_num_of_banks;
 		int	m_block_size;
@@ -236,7 +266,7 @@ class bank_alloc_unit_for_PARTITION_mode
 
 class Cache {
 	public:
-		Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name); //, vector<mem_request_t> *upper_level_serviced_q, vector<mem_request_t> *lower_level_req_q);
+		Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name, bool L2_banks_are_shared); //, vector<mem_request_t> *upper_level_serviced_q, vector<mem_request_t> *lower_level_req_q);
 
 		// 'Cycle-level'
 		void				advance_cycle();
@@ -252,7 +282,23 @@ class Cache {
 
 		addr_type	get_block_addr(addr_type this_addr)	{	return 	(this_addr >> m_block_offset_bits);	}
 		addr_type	get_set_index(addr_type	this_addr)	{	return	((this_addr >> m_block_offset_bits) & (m_num_of_sets-1));	}
-		addr_type	get_tag_value(addr_type	this_addr)	{	return	(this_addr >> (m_block_offset_bits+m_set_bits));		}
+		addr_type	get_tag_value(int core_id, addr_type	this_addr)	
+		{
+			if(m_L2_banks_are_shared==false)	
+				return	(this_addr >> (m_block_offset_bits+m_set_bits));		
+			// When L2-cache is "SHARED"
+			else
+			{
+				addr_type	enlarged_core_id	= (addr_type)core_id;
+				addr_type	original_tag	= (this_addr >> (m_block_offset_bits+m_set_bits));	
+				addr_type	modified_tag	= (this_addr >> (m_block_offset_bits+m_set_bits)) | ((enlarged_core_id)<<60)	;
+				#ifdef _SANITY_
+				assert(core_id<4);
+				assert(modified_tag >= original_tag);
+				#endif
+				return	modified_tag;
+			}
+		}
 
 		// Access methods
 		void	set_upper_level_serviced_q(vector<mem_request_t> *upper_level_serviced_q)
@@ -263,7 +309,7 @@ class Cache {
 		{
 			m_lower_level_request_q		= lower_level_request_q;
 		}
-		void	set_bank_alloc_unit(bank_alloc_unit_for_PARTITION_mode* bank_alloc_unit)
+		void	set_bank_alloc_unit(bank_alloc_unit* bank_alloc_unit)
 		{
 			m_bank_alloc_unit	= bank_alloc_unit;
 		}
@@ -271,7 +317,7 @@ class Cache {
 
 		vector<mem_request_t>* get_incoming_request_q()	{ return &m_in_request_q; }
 		vector<mem_request_t>* get_serviced_q()		{ return &m_serviced_q; }
-		bank_alloc_unit_for_PARTITION_mode* get_bank_alloc_unit() { return m_bank_alloc_unit; }
+		bank_alloc_unit* get_bank_alloc_unit() { return m_bank_alloc_unit; }
 		// Printing
 		void print_stats();
 		void print_cache_info();
@@ -311,8 +357,10 @@ class Cache {
 		vector<mem_request_t>	*m_lower_level_request_q;
 
 		// Connect to bank-alloc-unit
-		bank_alloc_unit_for_PARTITION_mode*	m_bank_alloc_unit;	
+		bank_alloc_unit*	m_bank_alloc_unit;	
 
+		// (Only used for L2)
+		bool			m_L2_banks_are_shared;
 		// Stats		
 		unsigned int		m_num_accesses;
 		unsigned int		m_num_hits;
