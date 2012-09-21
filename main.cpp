@@ -28,6 +28,8 @@ int	L1_miss_latency	= 20;
 int	L2_hit_latency	= 20;
 int	L2_miss_latency	= 200;	
 
+bool	L2_banks_are_shared	= false;// true;//false;	// If false, then banks are partitioned
+
 vector<int> L2_number_of_banks_each_core;
 vector<string> trace_file_name_each_core;
 vector<ifstream*> trace_file_each_core;
@@ -106,7 +108,7 @@ int main(int argc, char* argv[]) {
 	Cache	*L2[L2_NUM_OF_BANKS];
 	int	L2_size_per_bank	= (L2_size/L2_NUM_OF_BANKS);
 	// Bank-Partitioning Unit for "Partition" mode (equal/unequal)
-	bank_alloc_unit_for_PARTITION_mode	bank_alloc_unit(L2_size, L2_NUM_OF_BANKS, L2_block_size/*LineSize*/, L2_assoc);
+	bank_alloc_unit		bank_alloc_unit(L2_size, L2_NUM_OF_BANKS, L2_block_size/*LineSize*/, L2_assoc, L2_banks_are_shared);
 	bank_alloc_unit.set_bank_partition_number_among_cores(L2_number_of_banks_each_core[0], L2_number_of_banks_each_core[1],L2_number_of_banks_each_core[2],L2_number_of_banks_each_core[3]);
 
 	for(unsigned i=0; i<L2_NUM_OF_BANKS; i++)
@@ -124,8 +126,9 @@ int main(int argc, char* argv[]) {
 	{
 		core[i]	->set_lower_level_request_q	( L1[i]->get_incoming_request_q() 	);
 		L1[i]	->set_upper_level_serviced_q	( core[i]->get_serviced_q()		);
-		//L1[i]	->set_lower_level_request_q	( L2[i]->get_incoming_request_q()	);	// Need to modify 
-		L1[i]	->set_lower_level_request_q	( bank_alloc_unit.get_redirection_q() );	// NEWER!
+		L1[i]	->set_lower_level_request_q	( bank_alloc_unit.get_redirection_q() );	
+		// All requests from L1->L2 are sent to "Bank-alloc-unit"
+		// Bank-alloc-unit determines which bank to send the request to
 	}
 
 	//-------------------------------------------
@@ -133,7 +136,8 @@ int main(int argc, char* argv[]) {
 	//-------------------------------------------
 	for(unsigned i=0; i<L2_NUM_OF_BANKS; i++)
 	{
-		// Connect 'bank_alloc_unit' -> L2
+		// Connect 'bank_alloc_unit' -> L2	
+		// => Basically a "CHANNEL" that is used to send request to each banks
 		bank_alloc_unit.set_lower_level_request_q ( i, L2[i]->get_incoming_request_q() );
 		// Connect L2->MEM
 		L2[i]->set_lower_level_request_q	(NULL);
@@ -145,26 +149,50 @@ int main(int argc, char* argv[]) {
 	#ifdef _SANITY_
 	int	last_bank_assigned = 0;
 	#endif
+	// C-0. Instantiate "Service_reporting_module" (Used for shared-banks mode)
+	service_report_unit	L2_to_L1_redirect_unit;
 	for(int i=0; i<NUM_OF_CORES; i++)
 	{
-		cout<<"Core_"<<i<<" has "<<L2_number_of_banks_each_core[i]<<" banks allocated!"<<endl;
-		printf("Bank_Offset=%d\n", bank_offset);
-		for(int j=bank_offset; j<(bank_offset+L2_number_of_banks_each_core[i]); j++)
+		L2_to_L1_redirect_unit.set_upper_level_serviced_q(i, L1[i]->get_serviced_q());
+	}
+	// C-1. L2-banks are PARTITIONED
+	if(L2_banks_are_shared==false)
+	{
+		for(int i=0; i<NUM_OF_CORES; i++)
 		{
-			printf("\n Bank-%d is assiged to L1_of_Core-%d\n", j, i);
-			L2[j]->set_upper_level_serviced_q	(L1[i]->get_serviced_q() );
-			#ifdef _SANITY_
-			assert( j < L2_NUM_OF_BANKS);
-			last_bank_assigned	= j;
+			#ifdef _DEBUG_
+			cout<<"Core_"<<i<<" has "<<L2_number_of_banks_each_core[i]<<" banks allocated!"<<endl;
+			printf("Bank_Offset=%d\n", bank_offset);
 			#endif
+
+			for(int j=bank_offset; j<(bank_offset+L2_number_of_banks_each_core[i]); j++)
+			{
+				L2[j]->set_upper_level_serviced_q	(L1[i]->get_serviced_q() );
+
+				#ifdef _DEBUG_
+				printf("\n Bank-%d is assiged to L1_of_Core-%d\n", j, i);
+				#endif
+				#ifdef _SANITY_
+				assert( j < L2_NUM_OF_BANKS);
+				last_bank_assigned	= j;
+				#endif
+			}
+			bank_offset	+= L2_number_of_banks_each_core[i];
 		}
-		bank_offset	+= L2_number_of_banks_each_core[i];
+	}
+	// C-2. L2-banks are SHARED
+	else	
+	{
+		for(int i=0; i<L2_NUM_OF_BANKS; i++)
+		{
+			L2[i]->set_upper_level_serviced_q	( L2_to_L1_redirect_unit.get_redirection_q() ); 
+		}
 	}
 	#ifdef _SANITY_
-	assert(last_bank_assigned==(L2_NUM_OF_BANKS-1));
+	if(L2_banks_are_shared==false)	assert(last_bank_assigned==(L2_NUM_OF_BANKS-1));
 	#endif
 
-	// HOILI
+	#ifdef _DEBUG_
 	printf("\n\n===========================================\n");
 	printf("Addr=%x BankAddr=%d\n", 0x116,bank_alloc_unit.get_bank_addr(0x116));
 	printf("Addr=%x BankAddr=%d\n", 0x226,bank_alloc_unit.get_bank_addr(0x226));
@@ -174,14 +202,7 @@ int main(int argc, char* argv[]) {
 	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[3]->get_bank_alloc_unit()->get_bank_addr(0x226));
 	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[5]->get_bank_alloc_unit()->get_bank_addr(0x336));
 	printf("_Addr=%x BankAddr=%d\n", 0x116,L2[13]->get_bank_alloc_unit()->get_bank_addr(0xCD6));
-	//Jingwen: test bank address generation
-#ifdef _TEST_BANK_ADDR_UNIT_
-	for (int i; i<L2_size_per_bank; i++) {
-		cout << left << setw(20) << "Address=" << hex <<  i << left << "BankAdress=" << setw(20) << dec << bank_alloc_unit.get_bank_addr(i) << endl;
-	}
-	exit(1);
-#endif
-	
+	#endif
 	//============================================================
 	// B. Get trace and execute Core & Cycle
 	//============================================================
@@ -190,10 +211,6 @@ int main(int argc, char* argv[]) {
 	// *********OVERVIEW************
 	// read a line from each trace file. each time find a trace with smallest cycle number to feed the simulator
 	//============================================================
-
-	// (TODO) Temporarily enforced below to test
-	//num_cores	= 1;
-
 	int num_lines;
 	// Trace information
 	vector<addr_type> 		trace_addr;
@@ -259,12 +276,12 @@ int main(int argc, char* argv[]) {
 					{
 						core[i]->advance_cycle();
 					}
-		                        //core[0]->advance_cycle();
 					// Execute all banks	
 					for(int i=0; i<L2_NUM_OF_BANKS; i++)
 					{
                 		        	L2[i]->advance_cycle();
 					}
+					L2_to_L1_redirect_unit.advance_cycle();
 					for(int i=0; i<NUM_OF_CORES; i++)
 					{
 			                        L1[i]->advance_cycle();
@@ -367,25 +384,7 @@ int main(int argc, char* argv[]) {
 				all_trace_parsed = false;
 		}	
 	}
-/*
         // Execute whatever's left in 'incoming-Queue'
-        while(core[0]->request_all_finished()==false)
-        {
-                core[0]->advance_cycle();
-
-
-		for(int i=0; i<L2_NUM_OF_BANKS; i++)
-		{
-	        	L2[i]->advance_cycle();
-		}
-
-                //L2[0]->advance_cycle();
-                L1[0]->advance_cycle();	
-		bank_alloc_unit.advance_cycle();
-
-                cpu_cycle++;
-        }
-*/
 	bool	all_finished	= true;
 	for(int i=0; i<NUM_OF_CORES; i++)
 	{
@@ -407,6 +406,7 @@ int main(int argc, char* argv[]) {
 		{
 	        	L2[i]->advance_cycle();
 		}
+		L2_to_L1_redirect_unit.advance_cycle();
 		for(int i=0; i<NUM_OF_CORES; i++)
 		{
                         L1[i]->advance_cycle();
@@ -437,8 +437,5 @@ int main(int argc, char* argv[]) {
 	{
 		L2[i]->print_stats();
 	}
-//        core[0]->print_stats();
-//	L1[0]->print_stats();
-//	L2[0]->print_stats();
 
 }
