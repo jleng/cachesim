@@ -45,8 +45,8 @@ int main(int argc, char* argv[]) {
 	//============================================================
        // Instantiate Modules
         Core Core_0(/*core_id*/0);
-        Cache *L1       = new Cache(0, 1, 1, 32768, 16, 2, 5, 20,  "Level 1");
-        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 256*1024, 128, 2, 20, 200, "Level 2");
+        Cache *L1       = new Cache(0, 1, 1, 32768, 16, 2, 5, 20,  "Level 1", false);
+        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 256*1024, 128, 2, 20, 200, "Level 2", false);
 
         // Connect Core_0->L1
         Core_0.set_lower_level_request_q        ( L1->get_incoming_request_q() );

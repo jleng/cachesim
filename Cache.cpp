@@ -140,7 +140,7 @@ void bank_alloc_unit::advance_cycle()
 }
 
 
-Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_bank_id(bank_id), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name)
+Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int block_size, int assoc, int hit_latency, int miss_latency, string name, bool L2_banks_are_shared): m_core_id(core_id), m_cache_level(cache_level), m_tag_array(core_id, (cache_size/block_size), assoc), m_bank_id(bank_id), m_size(cache_size),m_block_size(block_size), m_associativity(assoc), m_hit_latency(hit_latency), m_miss_latency(miss_latency), m_name(name), m_L2_banks_are_shared(L2_banks_are_shared)
 
 {
 	// Get num of lines in cache
@@ -169,7 +169,7 @@ Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int bloc
 enum cache_access_status Cache::access(int req_core_id, unsigned is_write, addr_type access_addr, unsigned cycle_time)
 {
 	addr_type	set_idx 	= get_set_index(access_addr);
-	addr_type	tag_value	= get_tag_value(access_addr);
+	addr_type	tag_value	= get_tag_value(req_core_id, access_addr);
 	#ifdef _DEBUG_
 	printf("[AccessAddr=%8x] SetIdx=%x Tag=%x\n", access_addr,set_idx, tag_value);
 	#endif
@@ -248,7 +248,7 @@ void	Cache::advance_one_incoming_request()
 if(1)
 {
 	addr_type	set_idx 	= get_set_index(req_access_addr);
-	addr_type	tag_value	= get_tag_value(req_access_addr);
+	addr_type	tag_value	= get_tag_value(req_core_id, req_access_addr);
 	printf("\n[DEBUG][L%d][STORE=%d][HIT=%d] Addr=%x(%d) QUERIED at CYCLE=%lld\n",m_cache_level, req_op, result, req_access_addr, req_access_addr, cpu_cycle);
 	printf("SetIdx=%x Tag=%x\n\n", set_idx, tag_value);
 
@@ -384,7 +384,7 @@ void	Cache::advance_one_serviced_request()
 				addr_type	serviced_init_req_time	= (*it).m_first_request_time;
 
 				addr_type	set_idx 		= get_set_index(serviced_access_addr);
-				addr_type	tag_value		= get_tag_value(serviced_access_addr);
+				addr_type	tag_value		= get_tag_value(serviced_core_id, serviced_access_addr);
 				#ifdef _DEBUG_
 				printf("\n\n[SERVICED_Q_latency_is_ZERO!!!][L%d-cache][Cycle=%lld] [Opcode=%d][AccessAddr=%8x][InitReqTime=%lld] SetIdx=%x Tag=%x\n", m_cache_level,cpu_cycle,serviced_opcode, serviced_access_addr, serviced_init_req_time, set_idx, tag_value);
 				print_queue_status();

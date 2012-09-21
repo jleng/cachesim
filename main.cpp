@@ -28,7 +28,7 @@ int	L1_miss_latency	= 20;
 int	L2_hit_latency	= 20;
 int	L2_miss_latency	= 200;	
 
-bool	L2_banks_are_shared	= false;// true;//false;	// If false, then banks are partitioned
+bool	L2_banks_are_shared	= true;//false;	// If false, then banks are partitioned
 
 vector<int> L2_number_of_banks_each_core;
 vector<string> trace_file_name_each_core;
@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 	for(unsigned i=0; i<NUM_OF_CORES; i++)
 	{
 		core[i]	= new	Core(i);
-        	L1[i]	= new 	Cache(i, 1, 0, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1");
+        	L1[i]	= new 	Cache(i, 1, 0, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1", false);
 	}
 	#ifdef _SANITY_
 	assert((L2_size%L2_NUM_OF_BANKS)==0);
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
 
 	for(unsigned i=0; i<L2_NUM_OF_BANKS; i++)
 	{
-		L2[i]	= new	Cache(726, 2, i, L2_size_per_bank, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2");
+		L2[i]	= new	Cache(726, 2, i, L2_size_per_bank, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2", L2_banks_are_shared);
 		L2[i]->set_bank_alloc_unit(&bank_alloc_unit);
 	}
 	//============================================================
