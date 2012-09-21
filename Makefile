@@ -2,7 +2,7 @@ SHELL = /bin/sh
 
 SOURCE =  main.cpp Cache.cpp
 INC = Cache.h
-CFLAG = -Wall -g
+CFLAGS = -Wall -g
 CC = g++
 INCLUDES = -I. 
 LIBS = -lm
