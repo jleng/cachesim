@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
 	if(L2_banks_are_shared==false)	assert(last_bank_assigned==(L2_NUM_OF_BANKS-1));
 	#endif
 
-	#ifdef _DEBUG_
+#ifdef _DEBUG_
 	printf("\n\n===========================================\n");
 	printf("Addr=%x BankAddr=%d\n", 0x116,bank_alloc_unit.get_bank_addr(0x116));
 	printf("Addr=%x BankAddr=%d\n", 0x226,bank_alloc_unit.get_bank_addr(0x226));
@@ -202,6 +202,7 @@ int main(int argc, char* argv[]) {
 	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[3]->get_bank_alloc_unit()->get_bank_addr(0x226));
 	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[5]->get_bank_alloc_unit()->get_bank_addr(0x336));
 	//printf("_Addr=%x BankAddr=%d\n", 0x116,L2[13]->get_bank_alloc_unit()->get_bank_addr(0xCD6));
+#endif
 	//Jingwen: test bank address generation
 #ifdef _TEST_BANK_ADDR_UNIT_
 	for (int i; i<L2_size_per_bank; i++) {
