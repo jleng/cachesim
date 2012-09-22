@@ -12,17 +12,40 @@ using namespace std;
 unsigned long long	cpu_cycle = 0;
 
 //vector<mem_request_t>	core_0_serviced_req_q;
+int 	L1_size		= 32*1024;
+int 	L2_size		= 1024*1024/4;
+
+// (TODO)
+int	L1_block_size	= 16;
+int	L1_assoc	= 2;
+int	L2_block_size	= 128;
+int	L2_assoc	= 2;
+
+int	L1_hit_latency	= 5;
+int	L1_miss_latency	= 20;
+int	L2_hit_latency	= 20;
+int	L2_miss_latency	= 200;	
 
 
 int main(int argc, char* argv[]) {
 
         //input: now just need to specify the input file name
-        if (argc != 2) {
-                cout << "Please give me the trace file name!" << std::endl;
+       // if (argc != 2) {
+       //         cout << "Please give me the trace file name!" << std::endl;
+       //         exit(4);
+       // }
+
+        //input: according to the homework assignment
+        if (argc != 6) {
+                cout << "Usage: " << argv[0] << " cache-size block-size associativity hit latency trace-file-name" << std::endl;
                 exit(4);
         }
-
-        string trace_file_name(argv[1]);
+				
+				istringstream(argv[1]) >> L1_size;
+				istringstream(argv[2]) >> L1_block_size;
+				istringstream(argv[3]) >> L1_assoc;
+				istringstream(argv[4]) >> L1_hit_latency;
+        string trace_file_name(argv[5]);
         ifstream trace_file;
         trace_file.open(trace_file_name.c_str(),ifstream::in);
 
@@ -45,8 +68,8 @@ int main(int argc, char* argv[]) {
 	//============================================================
        // Instantiate Modules
         Core Core_0(/*core_id*/0);
-        Cache *L1       = new Cache(0, 1, 1, 32768, 16, 2, 5, 20,  "Level 1", false);
-        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, 256*1024, 128, 2, 20, 200, "Level 2", false);
+        Cache *L1       = new Cache(0, 1, 1, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1", false);
+        Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, L2_size, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2", false);
 
         // Connect Core_0->L1
         Core_0.set_lower_level_request_q        ( L1->get_incoming_request_q() );
