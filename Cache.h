@@ -334,6 +334,7 @@ class Cache {
 		int 	m_miss_latency; // l1: 200; l2: 200
 
 		int	m_cache_level;
+		int	m_prioritized_core_id;
 		string 	m_name;
 
 		// Detailed info derived from configurable-options

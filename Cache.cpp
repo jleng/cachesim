@@ -151,6 +151,9 @@ Cache::Cache(int core_id, int cache_level, int bank_id, int cache_size, int bloc
 	m_block_offset_bits		= log2(block_size);
 	m_set_bits			= log2(m_num_of_sets);
 
+	// Used for "RRB"
+	m_prioritized_core_id		= 0;
+
 	// Clear stats
 	m_num_accesses	= 0;
 	m_num_hits	= 0;
@@ -191,7 +194,7 @@ void	Cache::advance_one_incoming_request()
 		#ifdef _DEBUG_
 		printf("[L%d][Search starts with BEGIN as...] [Req_Core=%d][AccessAddr=%8x][CyclesLeft=%d][Requested_Time=%d]\n", m_cache_level,(*to_be_serviced_req).m_core_id, (*to_be_serviced_req).m_access_addr, (*to_be_serviced_req).m_cycles_left_for_service, (*to_be_serviced_req).m_first_request_time);		
 		#endif
-
+		// Determine oldest time
 		vector<mem_request_t>::iterator it;
 		for(it=m_in_request_q.begin(); it<m_in_request_q.end(); it++)
 		{
@@ -199,19 +202,105 @@ void	Cache::advance_one_incoming_request()
 			if( (*it).m_first_request_time < oldest_time )
 			{
 				oldest_time		= (*it).m_first_request_time;
-				oldest_core_id		= (*it).m_core_id;
-				to_be_serviced_req	= it;
 			}
-			// If requested-time is same, then have the 'lower-core-id' scheduled first for ROUND-ROBIN effect
-			else if( (*it).m_first_request_time==oldest_time )
+		}
+		// Track 'core-id's requested simultanesouly
+		int	num_cores_requested_simultaneously	= 0;
+		int	core_ids_requested[NUM_OF_CORES];	memset(core_ids_requested, 10/*dummy*/, sizeof(int)*NUM_OF_CORES);
+
+		bool	prioritized_core_id_exists	= false;
+		// Find cores requested at 'oldest-time'
+		for(it=m_in_request_q.begin(); it<m_in_request_q.end(); it++)
+		{
+			if( (*it).m_first_request_time == oldest_time )
 			{
-				if( (*it).m_core_id < oldest_core_id )
+				core_ids_requested[num_cores_requested_simultaneously]	= (*it).m_core_id;
+				num_cores_requested_simultaneously++;	
+
+				if( (*it).m_core_id == m_prioritized_core_id )
 				{
-					oldest_core_id		= (*it).m_core_id;
-					to_be_serviced_req	= it;
+					prioritized_core_id_exists	= true;
+				}
+			}			
+		}
+		int	selected_core_id	= 10;
+		if(num_cores_requested_simultaneously==1)
+		{
+			selected_core_id	= core_ids_requested[0];
+		}
+		else
+		{
+			#ifdef _SANITY_
+			assert(num_cores_requested_simultaneously>1);
+			#endif
+			if(prioritized_core_id_exists==true)
+			{
+				#ifdef _SANITY_
+				bool	arrived	= false;
+				#endif
+				for(int i=0; i<num_cores_requested_simultanously; i++)
+				{
+					if(core_ids_requested[i] == m_prioritized_core_id)
+					{
+						selected_core_id	= m_prioritized_core_id;
+						// Rotate priority
+						(++m_prioritized_core_id)%(NUM_OF_CORES);
+						#ifdef _SANITY_
+						arrived	= true;
+						#endif
+						break;
+					}
+				}	
+				#ifdef _SANITY_
+				assert(arrived==true);
+				#endif
+			}
+			else	
+			{
+				#ifdef _SANITY_
+				int	CNT = 0;
+				#endif
+				bool	found_core	= false;
+				int	priority		= (++m_prioritized_core_id)%(NUM_OF_CORES);
+				while(found_core==false)
+				{
+					for(int i=0; i<num_cores_requested_simultaneously; i++)
+					{
+						if(core_ids_requested[i] == priority)
+						{
+							selected_core_id	= priority;
+							found_core		= true;
+							break;
+						}
+					}
+					// If not found, rotate priority
+					if(found_core==false)
+					{
+						priority = (++priority)%(NUM_OF_CORES);
+						CNT++;
+					}
+					#ifdef _SANITY_	
+					// Check deadlock
+					if(CNT>10)	assert(0);
+					#endif
 				}
 			}
 		}
+		#ifdef _SANITY_
+		assert((selected_core_id>=0)&&(selected_core_id<NUM_OF_CORES));
+		#endif
+		// Get 'to-be-serviced-core-id' info
+		for(it=m_in_request_q.begin(); it<m_in_request_q.end(); it++)
+		{
+			// An older request exists!
+			if(( (*it).m_first_request_time == oldest_time)&&( (*it).m_core_id==selected_core_id ))
+			{
+				oldest_core_id	= (*it).m_core_id;
+				to_be_serviced_req	= it;
+				break;	
+			}
+		}
+
 		#ifdef _SANITY_
 		assert(oldest_core_id!=-1);
 		#endif
