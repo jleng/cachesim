@@ -14,4 +14,4 @@ ${EXECUTABLE}:${SOURCE} ${INC} autotest.cpp singlecache.cpp
 	${CC} ${CFLAGS} ${INCLUDES} -o singlecache singlecache.cpp Cache.cpp ${LIBS}
 
 clean:
-	-rm -f *.o $(EXECUTABLE)
+	-rm -f *.o $(EXECUTABLE) autotest singlecache

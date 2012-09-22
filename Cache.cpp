@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -206,7 +207,8 @@ void	Cache::advance_one_incoming_request()
 		}
 		// Track 'core-id's requested simultanesouly
 		int	num_cores_requested_simultaneously	= 0;
-		int	core_ids_requested[NUM_OF_CORES];	memset(core_ids_requested, 10/*dummy*/, sizeof(int)*NUM_OF_CORES);
+		int	core_ids_requested[NUM_OF_CORES];	
+		memset(core_ids_requested, 10/*dummy*/, sizeof(int)*NUM_OF_CORES);
 
 		bool	prioritized_core_id_exists	= false;
 		// Find cores requested at 'oldest-time'
@@ -238,7 +240,7 @@ void	Cache::advance_one_incoming_request()
 				#ifdef _SANITY_
 				bool	arrived	= false;
 				#endif
-				for(int i=0; i<num_cores_requested_simultanously; i++)
+				for(int i=0; i<num_cores_requested_simultaneously; i++)
 				{
 					if(core_ids_requested[i] == m_prioritized_core_id)
 					{

@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	
 
 	addr_type cycle;
-	addr_type cycle_step=50;
+	addr_type cycle_step=250;
 	assert(array_size % 1024 == 0);
 	//assert(array_size % stride == 0);
 
@@ -39,11 +39,14 @@ int main(int argc, char* argv[]) {
 		//out.open("test.txt"); 
 		//cout <<  out_name.str()<< "\n";
 		cycle = cycle_step;
-		for (addr_type addr=0; addr<array_size; addr+=stride) {
-			out << "0x" << hex << addr << " ";
-			out << dec << cycle << " ";
-			out << "LOAD" << endl;
-			cycle += cycle_step;
+		int tot_iter = (stride < 32)?5:200;
+		for ( int itr=0; itr < tot_iter; itr ++) {
+			for (addr_type addr=0; addr<array_size; addr+=stride) {
+				out << "0x" << hex << addr << " ";
+				out << dec << cycle << " ";
+				out << "LOAD" << endl;
+				cycle += cycle_step;
+			}
 		}
 		out.close();
 	}

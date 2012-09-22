@@ -168,8 +168,8 @@ int main(int argc, char* argv[]) {
         L1->print_stats();
         L2->print_stats();
 
-	L1->print_cache_block_status();
-	L2->print_cache_block_status();
+	//L1->print_cache_block_status();
+	//L2->print_cache_block_status();
 
 
 
