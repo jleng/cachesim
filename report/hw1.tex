@@ -7,6 +7,10 @@
 \usepackage{array}
 \usepackage{longtable}
 \usepackage{graphicx}
+\usepackage{listings}
+\usepackage{color}
+\usepackage[font=nomarl,labelfont=bf]{caption}
+
 
 % Header Information
 \pagestyle{fancy}
@@ -20,13 +24,49 @@
 %\renewcommand{\footrulewidth}{0.4pt}
 % END Header Information
 
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+ 
+\lstset{ %
+  language=Octave,                % the language of the code
+  basicstyle=\footnotesize,           % the size of the fonts that are used for the code
+  numbers=left,                   % where to put the line-numbers
+  numberstyle=\tiny\color{gray},  % the style that is used for the line-numbers
+  stepnumber=2,                   % the step between two line-numbers. If it's 1, each line 
+                                  % will be numbered
+  numbersep=5pt,                  % how far the line-numbers are from the code
+  backgroundcolor=\color{white},      % choose the background color. You must add \usepackage{color}
+  showspaces=false,               % show spaces adding particular underscores
+  showstringspaces=false,         % underline spaces within strings
+  showtabs=false,                 % show tabs within strings adding particular underscores
+  frame=single,                   % adds a frame around the code
+  rulecolor=\color{black},        % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+  tabsize=2,                      % sets default tabsize to 2 spaces
+%  captionpos=b,                   % sets the caption-position to bottom
+  breaklines=true,                % sets automatic line breaking
+  breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+%  title=\lstname,                   % show the filename of files included with \lstinputlisting;
+                                  % also try caption instead of title
+  keywordstyle=\color{blue},          % keyword style
+  commentstyle=\color{dkgreen},       % comment style
+  stringstyle=\color{mauve},         % string literal style
+  escapeinside={\%*}{*)},            % if you want to add LaTeX within your code
+  morekeywords={*,...}               % if you want to add more keywords to the set
+}
+
+\newcommand{\Fig}[1]{\figurename~\ref{#1}}
+\newcommand{\Figsub}[1]{\figurename~\subref{#1}}
+\newcommand{\Tbl}[1]{\tablename~\ref{#1}}
+\newcommand{\Sec}[1]{Section~\ref{#1}}
+
 %==========================================================
 
 \begin{document}
 %==========================================================
 
 \title{Homework 1: Cache Simulator}
-\author{Minsoo Rhu and Jingwen Leng}
+\author{Minsoo Rhu, Jingwen Leng}
 \date{Fall 2012}
 \maketitle
 
@@ -34,8 +74,39 @@
 \section{Description}
  coming soon
 
+\newpage
 \section{Evaluation}
 \subsection{Single Cache}
+To test our single cache (core) version of the cache simulator, we generate the memory access trace for program shown in \Fig{fig:autotest}, which uses a fixed stride to access an array (each element is one byte). 
+
+\begin{figure}[ht]
+\lstinputlisting[language=C]{figs/autotest.cpp}
+\caption{Program to automatically test cache paramters.}
+\label{fig:autotest}
+\end{figure}
+
+\Fig{fig:autotest_result} shows the results for the program with different array size and stride mentioned previously. We consider this is the signature dictionary of our cache. Next, we are going to explain how to get the cache parameters through the graph. We have also tested the scenario with L2 cache disable, but we only show the results for the single case with both L1 and L2 cache. Parameters for both cache are shown in the Figure.
+
+\begin{figure}[!h]
+\begin{minipage}[b]{\textwidth}
+ \centering
+ \includegraphics[trim=0mm 0mm 0mm 0mm,clip,width=\linewidth]{figs/autotest.pdf}
+ \caption{Average memory access cycles for different array size and stride.}
+ \label{fig:autotest_result}
+\end{minipage}
+\end{figure}
+
+\paragraph{Hit/Miss Latency}
+\Fig{fig:autotest_result} shows the average memory access cycles for different scenarios, i.e. L1 hit, L1 miss but L2 hit and L2 miss. The average access cycles for these scenarios are 5, 25 an 225 respectively. 
+
+\paragraph{Cache Capacity}
+As shown in the \Fig{fig:autotest_result}, when the array size is 16KB and 32KB, the array size is smaller or equal than the L1 cache capacity (32KB in the Figure). Thus the L1 cache is able to hold the whole array, which result in always L1 hit (except the initial cold miss). Similarly, for array size 64KB, 128KB and 256KB, which are smaller or equal than the L2 capacity 256KB but bigger than the L1 cache capacity, the access is L1 miss but L2 hit. When the array size is bigger than both L1 and L2 size, the memory access will be miss in the L2 cache.
+
+\paragraph{Block Size}
+As shown in the \Fig{fig:autotest_result}, when the stride to access memory changes from 8~$(2^3)$~Bytes to 16~$(2^4)$~Bytes, the memory access result in completely L1 miss. This is because the L1 cache block size is 16~Bytes. Access stride bigger than the block size would result in the completely L1 miss. Similarly, the transition point for L2 miss when access stride is 128~$(2^7)$~Bytes matches the L2 cache block size (128~Bytes).
+
+\paragraph{Cache Associativity}
+In the \Fig{fig:autotest_result}, when the access stride to access memory changes from $(2^{14})$~Bytes to $(2^{15})$~Bytes at array size 64KB, the memory access changes from L1 miss to L1 hit, although the array size is bigger than the L1 cache size. When the array size is 64KB ($2^{16}$~Bytes) and access stride is $(2^{14})$~Bytes, the program shown in \Fig{fig:autotest} is only accessing four elements in the array (with index 0, 16KB, 32KB and 64KB). However, these addresses have same index and the associativity for L1 cache is 2, each access is suffering conflict miss. When access stride becomes $2^{15}$~Bytes, which is the half size of the array, the program is only accessing two elements in the array. Although they still access the same set in the cache, associativity 2 is enough to guarantee cache his in this scenario. This also applies the array size 128KB and 256KB. For the L2 cache, the transition point for array size 512KB, 1024KB and 2048KB matches the L2 associativity as well.
 
 \subsection{Multicore Cache}
 
