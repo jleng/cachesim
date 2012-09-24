@@ -57,6 +57,7 @@
   morekeywords={*,...}               % if you want to add more keywords to the set
 }
 
+
 \newcommand{\Fig}[1]{\figurename~\ref{#1}}
 \newcommand{\Figsub}[1]{\figurename~\subref{#1}}
 \newcommand{\Tbl}[1]{\tablename~\ref{#1}}
@@ -72,7 +73,99 @@
 \date{Fall 2012}
 \maketitle
 
+\section{Cache Simulator Overview}
 
+The source files for our cache simulator are listed in \Tbl{src_files}:
+
+\begin{table}[h]
+\centering  % used for centering table
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|c |l| } % centered columns (4 columns)
+\hline                        %inserts double horizontal lines
+\textbf{Name}  & \textbf{Description} \\ [0.5ex] % inserts table 
+\hline \hline
+Cache.cpp & \multirow{3}{*}{contains the definition and declarition of Cache class}\\
+Cache.h & \\ 
+misc.h & \\\hline
+main.cpp & main function for multicore cache \\ \hline
+singlecache.cpp & main function for single cache \\\hline
+autotest.cpp & genrating the trace to test the cache hierachy and paramters. \\\hline
+Makefile & make file for cache simulator\\\hline
+
+\hline                  % inserts single horizontal line
+\end{tabular}
+}
+\caption{Source files in our cache simulator} % title of Table
+\label{src_files} % is used to refer this table in the text
+\end{table}
+
+\subsection{Simulator Input}
+
+The make file is going to generate two binaries: \emph{\textbf{cachesim}} and \emph{\textbf{singlecache}}. To run the single cache, use the following command line:
+
+./singlecache 32768 32 2 5 trace-file-name
+
+To run the multi core cache, use the following command line:
+
+./cachesim 4 32 1024 4 4 4 4 trace-file1 trace-file2 trace-file3 trace-file4
+
+The meaning of each parameter is the same as the home work specification.
+
+\subsection{Simulator Output}
+
+\begin{figure}[h]
+\lstinputlisting[language=C]{figs/singlecache.output}
+\caption{Sample out for single cache.}
+\label{fig:singlecache.output}
+\end{figure}
+
+\begin{figure}[!h]
+%\lstinputlisting[language=C]{figs/multicache.output}
+\begin{lstlisting}
+[Core-726][L2 Cache][BankId=0][Stats]
+- Total Accesses	= 4014
+- Total Hits		= 2636
+- Total Misses		= 1378
+=> Hit  rate		= 0.656702
+=> Miss rate		= 0.343298
+[Core-726][L2 Cache][BankId=1][Stats]
+- Total Accesses	= 4867
+- Total Hits		= 3009
+- Total Misses		= 1858
+=> Hit  rate		= 0.618245
+=> Miss rate		= 0.381755
+\end{lstlisting}
+\caption{Sample out for multi core cache.}
+\label{fig:singlecache.output}
+\end{figure}
+
+\Fig{fig:singlecache.output} and \Fig{fig:singlecache.output} show the sample output from our cache simulator. The access counts, hit/miss counts and hit/miss ratio are outputed for L1 and L2 cache, as well as for the individual bank in L2. 
+
+\subsection{Simulation Results}
+
+\begin{table}[!h]
+\centering  % used for centering table
+\resizebox{0.8\linewidth}{!}{
+\begin{tabular}{|c |c |c |c |c|c| } % centered columns (4 columns)
+\hline                        %inserts double horizontal lines
+\textbf{Name}   & \textbf{Total Access} & \textbf{Total Hit} & \textbf{Total Miss} & \textbf{Hit Rate (\%)} & \textbf{AMAT}\\ [0.5ex] % inserts table 
+\hline \hline
+gcc & 8922& 0 & 8922 & 0 & 205 \\ \hline
+dealII & 9601 & 224 & 9377 & 2.33 &200.42 \\ \hline
+mcf & 43995 & 650 & 43345 & 1.47 & 202.23 \\ \hline
+soplex & 27333 & 975 & 26358 & 3.57 & 198.06 \\
+\hline                 % inserts single horizontal line
+\end{tabular}
+}
+\caption{Simulaion results for the single cache} % title of Table
+\label{sim_result1} % is used to refer this table in the text
+\end{table}
+
+\Tbl{sim_result1} shows the simulation results for single L1 cache with the 32768~Bytes capacity, 32~Bytes block, associativity 2, hit latency 5 cycles and miss latency 200 cycles. The simulation results for multi core cache are shown and discussed in \Sec{sec:multi_cache}.
+
+
+
+\newpage
 \section{Description}
 \begin{figure}[!h]
 \begin{minipage}[b]{\textwidth}
@@ -101,7 +194,6 @@ cache module, we additionally instantiate \emph{16} cache modules to provide the
 configuration is selected (i) equally partitioned, ii) unequally partitioned, and iii) shared L2 banks configuration), the \emph{arbiter} coordinates the incoming requests
 from L1D to the appropriate L2D banks. As in the cache module, the arbiter also has an \emph{advance\_cycle()} method that enables its cycle-level
 behavior.
-
 
 
 
@@ -161,6 +253,7 @@ As shown in the \Fig{fig:autotest_result}, when the stride to access memory chan
 In the \Fig{fig:autotest_result}, when the access stride to access memory changes from $(2^{14})$~Bytes to $(2^{15})$~Bytes at array size 64KB, the memory access changes from L1 miss to L1 hit, although the array size is bigger than the L1 cache size. When the array size is 64KB ($2^{16}$~Bytes) and access stride is $(2^{14})$~Bytes, the program shown in \Fig{fig:autotest} is only accessing four elements in the array (with index 0, 16KB, 32KB and 64KB). However, these addresses have same index and the associativity for L1 cache is 2, each access is suffering conflict miss. When access stride becomes $2^{15}$~Bytes, which is the half size of the array, the program is only accessing two elements in the array. Although they still access the same set in the cache, associativity 2 is enough to guarantee cache his in this scenario. This also applies the array size 128KB and 256KB. For the L2 cache, the transition point for array size 512KB, 1024KB and 2048KB matches the L2 associativity as well.
 
 \subsection{Multicore Cache}
+\label{sec:multi_cache}
 
 In this homework, the L1 cache is private for each core, thus there is no difference between single core and multi core version. The main difference between these two scenarios come from the L2 cache: it can be equally partitioned, unequally partitioned or shared by all cores. \Sec{single_cache} already focuses on the evaluation of the cache hierarchies. Thus for the multicore cache part, we only focus on the evaluation of different L2 partition/shared cases.
 
@@ -195,7 +288,7 @@ Typically L2 cache has multiple banks with one read port and one write port to a
 \hline                 % inserts single horizontal line
 \end{tabular}
 }
-\caption{L2 bank isolaition test.} % title of Table
+\caption{L2 bank isolation test.} % title of Table
 \label{bank_isolation} % is used to refer this table in the text
 \end{table}
 
