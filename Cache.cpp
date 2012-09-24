@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cstring>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -7,6 +8,7 @@
 #include "misc.h"
 
 extern unsigned long long	cpu_cycle;
+extern int num_cores;
 //
 using namespace std;
 
@@ -80,7 +82,7 @@ void service_report_unit::advance_cycle()
 			int		req_core_id	= this_request.m_core_id;
 			addr_type	req_access_addr	= this_request.m_access_addr;
 			#ifdef _SANITY_
-			assert(req_core_id<NUM_OF_CORES);
+			assert(req_core_id<num_cores);
 			assert(req_access_addr!=0x0);
 			#endif
 
@@ -207,8 +209,9 @@ void	Cache::advance_one_incoming_request()
 		}
 		// Track 'core-id's requested simultanesouly
 		int	num_cores_requested_simultaneously	= 0;
-		int	core_ids_requested[NUM_OF_CORES];	
-		memset(core_ids_requested, 10/*dummy*/, sizeof(int)*NUM_OF_CORES);
+		int	core_ids_requested[MAX_CORES];	
+		//int*	core_ids_requested = (int*) malloc(sizeof(int)*num_cores);
+		memset(core_ids_requested, 10/*dummy*/, sizeof(int)*num_cores);
 
 		bool	prioritized_core_id_exists	= false;
 		// Find cores requested at 'oldest-time'
@@ -246,7 +249,7 @@ void	Cache::advance_one_incoming_request()
 					{
 						selected_core_id	= m_prioritized_core_id;
 						// Rotate priority
-						(++m_prioritized_core_id)%(NUM_OF_CORES);
+						(++m_prioritized_core_id)%(num_cores);
 						#ifdef _SANITY_
 						arrived	= true;
 						#endif
@@ -263,7 +266,7 @@ void	Cache::advance_one_incoming_request()
 				int	CNT = 0;
 				#endif
 				bool	found_core	= false;
-				int	priority		= (++m_prioritized_core_id)%(NUM_OF_CORES);
+				int	priority		= (++m_prioritized_core_id)%(num_cores);
 				while(found_core==false)
 				{
 					for(int i=0; i<num_cores_requested_simultaneously; i++)
@@ -278,7 +281,7 @@ void	Cache::advance_one_incoming_request()
 					// If not found, rotate priority
 					if(found_core==false)
 					{
-						priority = (++priority)%(NUM_OF_CORES);
+						priority = (++priority)%(num_cores);
 						CNT++;
 					}
 					#ifdef _SANITY_	
@@ -289,7 +292,7 @@ void	Cache::advance_one_incoming_request()
 			}
 		}
 		#ifdef _SANITY_
-		assert((selected_core_id>=0)&&(selected_core_id<NUM_OF_CORES));
+		assert((selected_core_id>=0)&&(selected_core_id<num_cores));
 		#endif
 		// Get 'to-be-serviced-core-id' info
 		for(it=m_in_request_q.begin(); it<m_in_request_q.end(); it++)

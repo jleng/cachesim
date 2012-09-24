@@ -6,8 +6,11 @@
 #include <vector>
 #include "misc.h"
 
+#define MAX_CORES 100
+#define MAX_BANKS 400
 using namespace std;
 
+extern int l2_num_banks;
 typedef unsigned long long addr_type;
 
 enum	cache_access_status
@@ -177,7 +180,7 @@ class service_report_unit
 		vector<mem_request_t> 	m_L2_to_L1_redirection_q;
 
 		// This is where a 'MISS' request will be requested to
-		vector<mem_request_t>	*m_upper_level_serviced_q[NUM_OF_CORES];
+		vector<mem_request_t>	*m_upper_level_serviced_q[MAX_CORES];
 
 };
 
@@ -211,7 +214,7 @@ class bank_alloc_unit
 		}
 		addr_type	get_bank_id_when_shared(int core_id, addr_type access_addr)
 		{
-			int	bank_idx	= ((access_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (L2_NUM_OF_BANKS-1));
+			int	bank_idx	= ((access_addr>>(m_block_offset_bits+m_set_bits_per_bank)) & (l2_num_banks-1));
 
 			#ifdef _SANITY_
 			assert( bank_idx<16 );
@@ -255,12 +258,12 @@ class bank_alloc_unit
 
 		int	m_bank_offset_bits;
 
-		int	m_num_banks_per_core[NUM_OF_CORES];
+		int	m_num_banks_per_core[MAX_CORES];
 		// Sorting Queue
 		vector<mem_request_t> m_L1_to_L2_redirection_q;
 
 		// This is where a 'MISS' request will be requested to
-		vector<mem_request_t>	*m_lower_level_request_q[L2_NUM_OF_BANKS];
+		vector<mem_request_t>	*m_lower_level_request_q[MAX_BANKS];
 };
 
 
