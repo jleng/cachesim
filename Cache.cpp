@@ -282,7 +282,9 @@ void	Cache::advance_one_incoming_request()
 					if(found_core==false)
 					{
 						priority = (++priority)%(num_cores);
+					#ifdef _SANITY_	
 						CNT++;
+					#endif
 					}
 					#ifdef _SANITY_	
 					// Check deadlock
