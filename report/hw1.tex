@@ -74,7 +74,56 @@
 
 
 \section{Description}
- coming soon
+\begin{figure}[!h]
+\begin{minipage}[b]{\textwidth}
+ \centering
+ \includegraphics[trim=0mm 0mm 0mm 0mm,clip,width=0.98\linewidth]{figs/cache_structure.pdf}
+ \caption{Overall structure of the multi-core cache simulator}
+ \label{fig:cache_structure}
+\end{minipage}
+\end{figure}
+
+\textbf{Single Cache Module.} The core cache module used in our multi-core cache simulator is constructed in a way such that it is easy to debug and re-usable on multiple 
+cache-levels (\Fig{fig:cache_structure}(a)). The class structure of a cache module consists of i) a tag-array
+class that stores all the necessary information required to track a cache line's state (i.e. tag, line status, accessed time, etc), 
+ii) an incoming-access-request-queue structure (using C++ STL containers) that stores cache-access requests from the core (in case of L1D caches) or
+the L1D caches (in case of L2D cache), iii) an output-serviced-request-queue structure that spits out serviced request, along with whether
+it was a hit/miss, and iv) access-methods that manipulate the cache module (i.e. probe(), access(), send\_serviced\_request, service\_incoming\_request()
+and etc). All the abovementioned modules that constitute a cache are structured in a way that operates in a \emph{cycle-level} manner, 
+so whenever a single clock cycle is elapsed, an internal \emph{advance\_cycle()} method is called. This method executes the necessary actions that
+need to be taken in order to \emph{advance} one clock cycle further, thus allowing the overall cache simulator to not only functionally
+emulate the cache, but also to capture the cycle-level behavior. 
+
+\textbf{Multi-Level Cache.} The cache module explained above is used to instantiate a \emph{single} bank amount of hardware that constitutes a cache, so each core instantiates
+\emph{one} cache module to mimic its single-bank L1D cache. Accordingly, based on the required specifications of HW1, a total of four banks
+are instantiated for L1D caches across the four multi-cores -- note that each banks work independently among each other in L1. Using the same 
+cache module, we additionally instantiate \emph{16} cache modules to provide the behavior of the 16-bank L2D cache. Based on how the L2 bank
+configuration is selected (i) equally partitioned, ii) unequally partitioned, and iii) shared L2 banks configuration), the \emph{arbiter} coordinates the incoming requests
+from L1D to the appropriate L2D banks. As in the cache module, the arbiter also has an \emph{advance\_cycle()} method that enables its cycle-level
+behavior.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \newpage
 \section{Evaluation}
