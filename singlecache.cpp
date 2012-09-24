@@ -43,10 +43,10 @@ int main(int argc, char* argv[]) {
                 exit(4);
         }
 				
-				istringstream(argv[1]) >> L1_size;
-				istringstream(argv[2]) >> L1_block_size;
-				istringstream(argv[3]) >> L1_assoc;
-				istringstream(argv[4]) >> L1_hit_latency;
+		istringstream(argv[1]) >> L1_size;
+		istringstream(argv[2]) >> L1_block_size;
+		istringstream(argv[3]) >> L1_assoc;
+		istringstream(argv[4]) >> L1_hit_latency;
         string trace_file_name(argv[5]);
         ifstream trace_file;
         trace_file.open(trace_file_name.c_str(),ifstream::in);
@@ -71,15 +71,20 @@ int main(int argc, char* argv[]) {
        // Instantiate Modules
         Core Core_0(/*core_id*/0);
         Cache *L1       = new Cache(0, 1, 1, L1_size, L1_block_size, L1_assoc, L1_hit_latency, L1_miss_latency,  "Level 1", false);
+#ifdef USE_L2
         Cache *L2       = new Cache(/*no meaning of core_id as L2 is shared*/726, 2, 1, L2_size, L2_block_size, L2_assoc, L2_hit_latency, L2_miss_latency, "Level 2", false);
-
+#endif
         // Connect Core_0->L1
         Core_0.set_lower_level_request_q        ( L1->get_incoming_request_q() );
         L1->set_upper_level_serviced_q          ( Core_0.get_serviced_q() );
+#ifdef USE_L2
         L1->set_lower_level_request_q           ( L2->get_incoming_request_q() );
         // Connect L1->L2
         L2->set_upper_level_serviced_q  ( L1->get_serviced_q() );
         L2->set_lower_level_request_q   ( NULL);
+#else
+        L1->set_lower_level_request_q           ( NULL );
+#endif
 
 
 	//============================================================
@@ -149,13 +154,18 @@ int main(int argc, char* argv[]) {
                         #endif
                       
                         Core_0.advance_cycle();
+
+#ifdef USE_L2
                         L2->advance_cycle();
+#endif
                         L1->advance_cycle();
                         #ifdef _DEBUG_
                         L1->print_queue_status();
                         L1->print_cache_block_status();
+#ifdef USE_L2
                         L2->print_queue_status();
                         L2->print_cache_block_status();
+#endif
                         #endif
 
                         cpu_cycle++;
@@ -178,7 +188,9 @@ int main(int argc, char* argv[]) {
                 #endif
 
                 Core_0.advance_cycle();
+#ifdef USE_L2
                 L2->advance_cycle();
+#endif
                 L1->advance_cycle();
 
                 cpu_cycle++;
@@ -191,7 +203,9 @@ int main(int argc, char* argv[]) {
 
         Core_0.print_stats();
         L1->print_stats();
+#ifdef USE_L2
         L2->print_stats();
+#endif
 
 	//L1->print_cache_block_status();
 	//L2->print_cache_block_status();
