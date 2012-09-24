@@ -1,0 +1,179 @@
+Number of cores:                        4
+L1 Size:                                32768[1;31mKB[0m
+L2 Size:                                1048576[1;31mKB[0m
+Core                                    0
+number of banks allocated in L2 =       4
+trace file name =                       gcc_25M.trace
+Core                                    1
+number of banks allocated in L2 =       4
+trace file name =                       dealII_25M.trace
+Core                                    2
+number of banks allocated in L2 =       4
+trace file name =                       mcf_25M.trace
+Core                                    3
+number of banks allocated in L2 =       4
+trace file name =                       soplex_25M.trace
+
+
+[End of Execution]Current CPU-CYcle=25006980
+
+
+=====================================
+[Core-0] Stats
+- Num of access 	= 8922
+- Num of serviced	= 8922
+-------------------------------------
+- Total latencies accumulated	 = 1304452
+- (AMAT) Average Mem Access Time = 146.206232
+=====================================
+
+[Core-0][L1 Cache][BankId=0][Stats]
+- Total Accesses	= 8922
+- Total Hits		= 0
+- Total Misses		= 8922
+=> Hit  rate		= 0.000000
+=> Miss rate		= 1.000000
+
+=====================================
+[Core-1] Stats
+- Num of access 	= 9601
+- Num of serviced	= 9601
+-------------------------------------
+- Total latencies accumulated	 = 1328731
+- (AMAT) Average Mem Access Time = 138.395063
+=====================================
+
+[Core-1][L1 Cache][BankId=0][Stats]
+- Total Accesses	= 9601
+- Total Hits		= 237
+- Total Misses		= 9364
+=> Hit  rate		= 0.024685
+=> Miss rate		= 0.975315
+
+=====================================
+[Core-2] Stats
+- Num of access 	= 43995
+- Num of serviced	= 43995
+-------------------------------------
+- Total latencies accumulated	 = 7240939
+- (AMAT) Average Mem Access Time = 164.585498
+=====================================
+
+[Core-2][L1 Cache][BankId=0][Stats]
+- Total Accesses	= 43995
+- Total Hits		= 650
+- Total Misses		= 43345
+=> Hit  rate		= 0.014774
+=> Miss rate		= 0.985226
+
+=====================================
+[Core-3] Stats
+- Num of access 	= 27333
+- Num of serviced	= 27333
+-------------------------------------
+- Total latencies accumulated	 = 5423481
+- (AMAT) Average Mem Access Time = 198.422456
+=====================================
+
+[Core-3][L1 Cache][BankId=0][Stats]
+- Total Accesses	= 27333
+- Total Hits		= 981
+- Total Misses		= 26352
+=> Hit  rate		= 0.035891
+=> Miss rate		= 0.964109
+[Core-726][L2 Cache][BankId=0][Stats]
+- Total Accesses	= 4014
+- Total Hits		= 2636
+- Total Misses		= 1378
+=> Hit  rate		= 0.656702
+=> Miss rate		= 0.343298
+[Core-726][L2 Cache][BankId=1][Stats]
+- Total Accesses	= 4867
+- Total Hits		= 3009
+- Total Misses		= 1858
+=> Hit  rate		= 0.618245
+=> Miss rate		= 0.381755
+[Core-726][L2 Cache][BankId=2][Stats]
+- Total Accesses	= 4138
+- Total Hits		= 2791
+- Total Misses		= 1347
+=> Hit  rate		= 0.674480
+=> Miss rate		= 0.325520
+[Core-726][L2 Cache][BankId=3][Stats]
+- Total Accesses	= 4019
+- Total Hits		= 2740
+- Total Misses		= 1279
+=> Hit  rate		= 0.681762
+=> Miss rate		= 0.318238
+[Core-726][L2 Cache][BankId=4][Stats]
+- Total Accesses	= 3926
+- Total Hits		= 2522
+- Total Misses		= 1404
+=> Hit  rate		= 0.642384
+=> Miss rate		= 0.357616
+[Core-726][L2 Cache][BankId=5][Stats]
+- Total Accesses	= 4060
+- Total Hits		= 2769
+- Total Misses		= 1291
+=> Hit  rate		= 0.682020
+=> Miss rate		= 0.317980
+[Core-726][L2 Cache][BankId=6][Stats]
+- Total Accesses	= 4420
+- Total Hits		= 3030
+- Total Misses		= 1390
+=> Hit  rate		= 0.685520
+=> Miss rate		= 0.314480
+[Core-726][L2 Cache][BankId=7][Stats]
+- Total Accesses	= 4028
+- Total Hits		= 2504
+- Total Misses		= 1524
+=> Hit  rate		= 0.621648
+=> Miss rate		= 0.378352
+[Core-726][L2 Cache][BankId=8][Stats]
+- Total Accesses	= 20563
+- Total Hits		= 12170
+- Total Misses		= 8393
+=> Hit  rate		= 0.591840
+=> Miss rate		= 0.408160
+[Core-726][L2 Cache][BankId=9][Stats]
+- Total Accesses	= 20693
+- Total Hits		= 12534
+- Total Misses		= 8159
+=> Hit  rate		= 0.605712
+=> Miss rate		= 0.394288
+[Core-726][L2 Cache][BankId=10][Stats]
+- Total Accesses	= 20616
+- Total Hits		= 12455
+- Total Misses		= 8161
+=> Hit  rate		= 0.604142
+=> Miss rate		= 0.395858
+[Core-726][L2 Cache][BankId=11][Stats]
+- Total Accesses	= 20264
+- Total Hits		= 11855
+- Total Misses		= 8409
+=> Hit  rate		= 0.585028
+=> Miss rate		= 0.414972
+[Core-726][L2 Cache][BankId=12][Stats]
+- Total Accesses	= 11983
+- Total Hits		= 5840
+- Total Misses		= 6143
+=> Hit  rate		= 0.487357
+=> Miss rate		= 0.512643
+[Core-726][L2 Cache][BankId=13][Stats]
+- Total Accesses	= 12914
+- Total Hits		= 6281
+- Total Misses		= 6633
+=> Hit  rate		= 0.486371
+=> Miss rate		= 0.513629
+[Core-726][L2 Cache][BankId=14][Stats]
+- Total Accesses	= 12792
+- Total Hits		= 5988
+- Total Misses		= 6804
+=> Hit  rate		= 0.468105
+=> Miss rate		= 0.531895
+[Core-726][L2 Cache][BankId=15][Stats]
+- Total Accesses	= 11735
+- Total Hits		= 5769
+- Total Misses		= 5966
+=> Hit  rate		= 0.491606
+=> Miss rate		= 0.508394

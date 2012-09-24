@@ -1,0 +1,19 @@
+NumLines to Simulate=Whole File
+NumLines to Simulate=-1
+Current CPU-CYcle=23915706
+
+=====================================
+[Core-0] Stats
+- Num of access		= 12190
+- Num of serviced	= 12190
+-------------------------------------
+- Total latencies accumulated	 = 283378
+- (AMAT) Average Mem Access Time = 23.246760
+=====================================
+
+[Core-0][L1 Cache][BankId=1][Stats]
+- Total Accesses	= 12190
+- Total Hits		= 1417
+- Total Misses		= 10773
+=> Hit  rate		= 0.116243
+=> Miss rate		= 0.883757
