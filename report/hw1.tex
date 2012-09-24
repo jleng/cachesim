@@ -57,6 +57,7 @@
   morekeywords={*,...}               % if you want to add more keywords to the set
 }
 
+
 \newcommand{\Fig}[1]{\figurename~\ref{#1}}
 \newcommand{\Figsub}[1]{\figurename~\subref{#1}}
 \newcommand{\Tbl}[1]{\tablename~\ref{#1}}
@@ -106,6 +107,40 @@ To run the multi core cache, use the following command line:
 
 ./cachesim 4 32 1024 4 4 4 4 trace-file1 trace-file2 trace-file3 trace-file4
 
+The meaning of each parameter is the same as the home work specification.
+
+\subsection{Simulator Output}
+
+\begin{figure}[h]
+\lstinputlisting[language=C]{figs/singlecache.output}
+\caption{Sample out for single cache.}
+\label{fig:singlecache.output}
+\end{figure}
+
+\begin{figure}[!h]
+%\lstinputlisting[language=C]{figs/multicache.output}
+\begin{lstlisting}
+[Core-726][L2 Cache][BankId=0][Stats]
+- Total Accesses	= 4014
+- Total Hits		= 2636
+- Total Misses		= 1378
+=> Hit  rate		= 0.656702
+=> Miss rate		= 0.343298
+[Core-726][L2 Cache][BankId=1][Stats]
+- Total Accesses	= 4867
+- Total Hits		= 3009
+- Total Misses		= 1858
+=> Hit  rate		= 0.618245
+=> Miss rate		= 0.381755
+\end{lstlisting}
+\caption{Sample out for multi core cache.}
+\label{fig:singlecache.output}
+\end{figure}
+
+\Fig{fig:singlecache.output} and \Fig{fig:singlecache.output} show the sample output from our cache simulator. The access counts, hit/miss counts and hit/miss ratio are outputed for L1 and L2 cache, as well as for the individual bank in L2. 
+
+%\subsection{T}
+
 \newpage
 \section{Description}
 \begin{figure}[!h]
@@ -135,7 +170,6 @@ cache module, we additionally instantiate \emph{16} cache modules to provide the
 configuration is selected (i) equally partitioned, ii) unequally partitioned, and iii) shared L2 banks configuration), the \emph{arbiter} coordinates the incoming requests
 from L1D to the appropriate L2D banks. As in the cache module, the arbiter also has an \emph{advance\_cycle()} method that enables its cycle-level
 behavior.
-
 
 
 
@@ -229,7 +263,7 @@ Typically L2 cache has multiple banks with one read port and one write port to a
 \hline                 % inserts single horizontal line
 \end{tabular}
 }
-\caption{L2 bank isolaition test.} % title of Table
+\caption{L2 bank isolation test.} % title of Table
 \label{bank_isolation} % is used to refer this table in the text
 \end{table}
 
