@@ -24,7 +24,7 @@ int	L2_block_size	= 128;
 int	L2_assoc	= 2;
 
 int	L1_hit_latency	= 5;
-int	L1_miss_latency	= 20;
+int	L1_miss_latency	= 200;
 int	L2_hit_latency	= 20;
 int	L2_miss_latency	= 200;	
 
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
         //input: according to the homework assignment
         if (argc != 6) {
-                cout << "Usage: " << argv[0] << " cache-size block-size associativity hit latency trace-file-name" << std::endl;
+                cout << "Usage: " << argv[0] << " cache-size block-size associativity hit-latency trace-file-name" << std::endl;
                 exit(4);
         }
 				
