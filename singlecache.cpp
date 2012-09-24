@@ -10,6 +10,8 @@
 using namespace std;
 
 unsigned long long	cpu_cycle = 0;
+int num_cores = 1;
+int l2_num_banks = 1;
 
 //vector<mem_request_t>	core_0_serviced_req_q;
 int 	L1_size		= 32*1024;

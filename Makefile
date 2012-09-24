@@ -8,7 +8,7 @@ INCLUDES = -I.
 LIBS = -lm
 EXECUTABLE=cachesim
 
-${EXECUTABLE}:${SOURCE} ${INC} autotest.cpp singlecache.cpp
+${EXECUTABLE}:${SOURCE} ${INC} autotest.cpp singlecache.cpp misc.h
 	${CC} ${CFLAGS} ${INCLUDES} -o $@ ${SOURCE} ${LIBS}
 	${CC} ${CFLAGS} ${INCLUDES} -o autotest autotest.cpp ${LIBS}
 	${CC} ${CFLAGS} ${INCLUDES} -o singlecache singlecache.cpp Cache.cpp ${LIBS}
