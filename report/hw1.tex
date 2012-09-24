@@ -72,7 +72,41 @@
 \date{Fall 2012}
 \maketitle
 
+\section{How to run the cache simulator}
 
+The source files for our cache simulator are listed in \Tbl{src_files}:
+
+\begin{table}[h]
+\centering  % used for centering table
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|c |l| } % centered columns (4 columns)
+\hline                        %inserts double horizontal lines
+\textbf{Name}  & \textbf{Description} \\ [0.5ex] % inserts table 
+\hline \hline
+Cache.cpp & \multirow{3}{*}{contains the definition and declarition of Cache class}\\
+Cache.h & \\ 
+misc.h & \\\hline
+main.cpp & main function for multicore cache \\ \hline
+singlecache.cpp & main function for single cache \\\hline
+autotest.cpp & genrating the trace to test the cache hierachy and paramters. \\\hline
+Makefile & make file for cache simulator\\\hline
+
+\hline                  % inserts single horizontal line
+\end{tabular}
+}
+\caption{Source files in our cache simulator} % title of Table
+\label{src_files} % is used to refer this table in the text
+\end{table}
+
+The make file is going to generate two binaries: \emph{\textbf{cachesim}} and \emph{\textbf{singlecache}}. To run the single cache, use the following command line:
+
+./singlecache 32768 32 2 5 trace-file-name
+
+To run the multi core cache, use the following command line:
+
+./cachesim 4 32 1024 4 4 4 4 trace-file1 trace-file2 trace-file3 trace-file4
+
+\newpage
 \section{Description}
  coming soon
 
