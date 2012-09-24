@@ -73,7 +73,7 @@
 \date{Fall 2012}
 \maketitle
 
-\section{How to run the cache simulator}
+\section{Cache Simulator Overview}
 
 The source files for our cache simulator are listed in \Tbl{src_files}:
 
@@ -98,6 +98,8 @@ Makefile & make file for cache simulator\\\hline
 \caption{Source files in our cache simulator} % title of Table
 \label{src_files} % is used to refer this table in the text
 \end{table}
+
+\subsection{Simulator Input}
 
 The make file is going to generate two binaries: \emph{\textbf{cachesim}} and \emph{\textbf{singlecache}}. To run the single cache, use the following command line:
 
@@ -139,7 +141,29 @@ The meaning of each parameter is the same as the home work specification.
 
 \Fig{fig:singlecache.output} and \Fig{fig:singlecache.output} show the sample output from our cache simulator. The access counts, hit/miss counts and hit/miss ratio are outputed for L1 and L2 cache, as well as for the individual bank in L2. 
 
-%\subsection{T}
+\subsection{Simulation Results}
+
+\begin{table}[!h]
+\centering  % used for centering table
+\resizebox{0.8\linewidth}{!}{
+\begin{tabular}{|c |c |c |c |c|c| } % centered columns (4 columns)
+\hline                        %inserts double horizontal lines
+\textbf{Name}   & \textbf{Total Access} & \textbf{Total Hit} & \textbf{Total Miss} & \textbf{Hit Rate (\%)} & \textbf{AMAT}\\ [0.5ex] % inserts table 
+\hline \hline
+gcc & 8922& 0 & 8922 & 0 & 205 \\ \hline
+dealII & 9601 & 224 & 9377 & 2.33 &200.42 \\ \hline
+mcf & 43995 & 650 & 43345 & 1.47 & 202.23 \\ \hline
+soplex & 27333 & 975 & 26358 & 3.57 & 198.06 \\
+\hline                 % inserts single horizontal line
+\end{tabular}
+}
+\caption{Simulaion results for the single cache} % title of Table
+\label{sim_result1} % is used to refer this table in the text
+\end{table}
+
+\Tbl{sim_result1} shows the simulation results for single L1 cache with the 32768~Bytes capacity, 32~Bytes block, associativity 2, hit latency 5 cycles and miss latency 200 cycles. The simulation results for multi core cache are shown and discussed in \Sec{sec:multi_cache}.
+
+
 
 \newpage
 \section{Description}
@@ -229,6 +253,7 @@ As shown in the \Fig{fig:autotest_result}, when the stride to access memory chan
 In the \Fig{fig:autotest_result}, when the access stride to access memory changes from $(2^{14})$~Bytes to $(2^{15})$~Bytes at array size 64KB, the memory access changes from L1 miss to L1 hit, although the array size is bigger than the L1 cache size. When the array size is 64KB ($2^{16}$~Bytes) and access stride is $(2^{14})$~Bytes, the program shown in \Fig{fig:autotest} is only accessing four elements in the array (with index 0, 16KB, 32KB and 64KB). However, these addresses have same index and the associativity for L1 cache is 2, each access is suffering conflict miss. When access stride becomes $2^{15}$~Bytes, which is the half size of the array, the program is only accessing two elements in the array. Although they still access the same set in the cache, associativity 2 is enough to guarantee cache his in this scenario. This also applies the array size 128KB and 256KB. For the L2 cache, the transition point for array size 512KB, 1024KB and 2048KB matches the L2 associativity as well.
 
 \subsection{Multicore Cache}
+\label{sec:multi_cache}
 
 In this homework, the L1 cache is private for each core, thus there is no difference between single core and multi core version. The main difference between these two scenarios come from the L2 cache: it can be equally partitioned, unequally partitioned or shared by all cores. \Sec{single_cache} already focuses on the evaluation of the cache hierarchies. Thus for the multicore cache part, we only focus on the evaluation of different L2 partition/shared cases.
 
