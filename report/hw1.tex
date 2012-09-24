@@ -23,7 +23,9 @@
 %\renewcommand{\headrulewidth}{0.4pt}
 %\renewcommand{\footrulewidth}{0.4pt}
 % END Header Information
-
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+  
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
 \definecolor{mauve}{rgb}{0.58,0,0.82}
@@ -77,6 +79,7 @@
 \newpage
 \section{Evaluation}
 \subsection{Single Cache}
+\label{single_cache}
 To test our single cache (core) version of the cache simulator, we generate the memory access trace for program shown in \Fig{fig:autotest}, which uses a fixed stride to access an array (each element is one byte). 
 
 \begin{figure}[ht]
@@ -110,4 +113,74 @@ In the \Fig{fig:autotest_result}, when the access stride to access memory change
 
 \subsection{Multicore Cache}
 
+In this homework, the L1 cache is private for each core, thus there is no difference between single core and multi core version. The main difference between these two scenarios come from the L2 cache: it can be equally partitioned, unequally partitioned or shared by all cores. \Sec{single_cache} already focuses on the evaluation of the cache hierarchies. Thus for the multicore cache part, we only focus on the evaluation of different L2 partition/shared cases.
+
+\paragraph{Partitioned L2 Cache}
+Typically L2 cache has multiple banks with one read port and one write port to achieve the same effect with a large L2 cache with multiple read/write ports, but with much less area/power overhead. When the L2 cache is partitioned among multiple cores, each core will be assigned with multiple banks that are dedicated to serve that core. The number of L2 cache banks assigned to each core can be equal or unequal. In the partitioned L2 cache, a core is not allowed to access banks assigned to other cores. To validate this property, we first simulate the scenario that four different traces are assigned to four different cores. Then we feed only one trace. (empty traces are fed to other cores)
+
+
+\begin{table}[t]
+\centering  % used for centering table
+\resizebox{0.75\linewidth}{!}{
+\begin{tabular}{|c| c |c|c|c|c| c| } % centered columns (4 columns)
+\hline                        %inserts double horizontal lines
+\textbf{Core ID} & \textbf{Bank ID} & \textbf{\specialcell{Four Traces}}  & \textbf{\specialcell{gcc \\ Core 0}} & \textbf{\specialcell{dealII \\ Core 1}} & \textbf{\specialcell{mcf\\Core 2}}& \textbf{\specialcell{soplex\\Core 3}} \\ [0.5ex] % inserts table \hline
+\hline
+\hline
+\multirow{4}{*}{Core 0}&0&4014&4014&0&0&0\\                                                                                        
+&1&4867&4867&0&0&0\\ 
+&2&4138&4138&1&1&1\\ 
+&3&4019&4019&0&0&0\\ \hline
+\multirow{4}{*}{Core 1}&4&3926&0&3926&0&0\\ 
+&5&4060&0&4060&0&0\\ 
+&6&4420&1&4420&1&1\\ 
+&7&4028&0&4028&0&0\\ \hline
+\multirow{4}{*}{Core 2}&8&20563&0&0&20563&0\\ 
+&9&20693&0&0&20693&0\\ 
+&10&20616&1&1&20616&1\\ 
+&11&20264&0&0&20264&0\\ \hline
+\multirow{4}{*}{Core 3}&12&11983&0&0&0&11983\\ 
+&13&12914&0&0&0&12914\\ 
+&14&12792&1&1&1&12792\\ 
+&15&11735&0&0&0&11735\\
+\hline                 % inserts single horizontal line
+\end{tabular}
+}
+\caption{L2 bank isolaition test.} % title of Table
+\label{bank_isolation} % is used to refer this table in the text
+\end{table}
+
+\begin{figure}[t]
+ \centering
+\begin{minipage}[b]{0.8\textwidth}
+ \centering
+ \includegraphics[trim=0mm 0mm 0mm 0mm,clip,width=\linewidth]{figs/bank_hit_rate.pdf}
+ \caption{Bank hit rate for different L2 cache scheme.}
+ \label{bank_hit}
+\end{minipage}
+\end{figure}
+
+\Tbl{bank_isolation} shows the result for the bank access isolation test. We used equally partitioned L2 cache for four cores, and each core is assigned with 4 banks. The first two columns of the Table show how banks are assigned to each core. The other columns show the access counts to each bank under different cases. In the \emph{Four Traces} scenario, \emph{gcc} trace is fed to core 0, \emph{dealII} trace is for 1, \emph{mcf} for core 2 and \emph{soplex} for core 3. In the \emph{gcc Core 0} case, gcc trace is fed to core 0 and other cores are fed with a "pseudo" empty trace with only one memory access (that's why other cores have one access in the L2), similarly for other three scenarios. The access counts in \Tbl{bank_isolation} show that in the partitioned case, a core is not able to access other cores' banks.
+
+\paragraph{Shared L2 Cache}
+In shared L2 cache, each core is free to access any bank. Here, we compare the metric of \emph{Average Memory Access Time} (AMAT) for the shared L2 cache with partitioned L2 cache.
+
+
+We used 16-banked L2 cache for 4 cores. The trace fed to each core is the same in the third column of \Tbl{bank_isolation}. \Fig{bank_hit} shows the hit rate for each bank for different schemes. For equal partitioned, we can clearly see core 0 and core 1 have the highest bank hit while core 3 has the lowest hit rate. In the shared L2 cache scheme, each bank has a more evenly distributed bank hit rate. With the knowledge that core 3 has the lowest hit rate, we increase the number of banks assigned to core 3 to 8 (resulting the bank allocation for each core 2 2 4 8, still 16 total banks). The result in \Fig{bank_hit} shows the improvement of bank hit rate for core 3. Core 0 and core 1 are not affected that much since they don not have the desire to a larger cache. 
+
+\begin{figure}[b]
+ \centering
+\begin{minipage}[b]{0.7\textwidth}
+ \centering
+ \includegraphics[trim=0mm 0mm 0mm 0mm,clip,width=\linewidth]{figs/bench_stats.pdf}
+ \caption{AMAT for different benchmarks.}
+ \label{bench_stats}
+\end{minipage}
+\end{figure}
+
+\Fig{bench_stats} shows the AMAT for each benchmark. We can see the shared L2 cache and the unequal partitioned L2 cache with the knowledge of benchmark characteristics can reduce the AMAT for benchmark \emph{soplex} without affecting other program's performance, resulting a smaller AMAT averaged for these 4 benchmarks.
+
 \end{document}
+
+
+
