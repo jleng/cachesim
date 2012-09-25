@@ -109,7 +109,16 @@ To run the multi core cache, use the following command line:
 
 ./cachesim 4 32 1024 4 4 4 4 trace-file1 trace-file2 trace-file3 trace-file4
 
-The meaning of each parameter is the same as the home work specification.
+The meaning of each parameter is the same as the homework specification. The default multicore cache simulator is partitioned as in the homework requirement. To run the simulator in shared L2 scheme, users need to modify the variable \emph{L2\_banks\_are\_shared} in main.cpp to true (\Fig{fig:config_variable}). After changing the value of variable, the binary needs  to be recompiled. 
+
+\begin{figure}[!h]
+%\lstinputlisting[language=C]{figs/multicache.output}
+\lstinputlisting[language=C]{figs/configure.c}
+\caption{Variable used to decide shared/paritioned L2 cache.}
+\label{fig:config_variable}
+\end{figure}
+
+
 
 \subsection{Simulator Output}
 
