@@ -303,6 +303,12 @@ class Cache {
 			}
 		}
 
+
+
+		unsigned int	get_access()	{ return m_num_accesses;}
+		unsigned int	get_hits()	{ return m_num_hits;}
+		unsigned int	get_misses()	{ return m_num_misses; }
+
 		// Access methods
 		void	set_upper_level_serviced_q(vector<mem_request_t> *upper_level_serviced_q)
 		{

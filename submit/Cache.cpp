@@ -600,13 +600,30 @@ void	Cache::advance_cycle()
 
 void Cache::print_stats()
 {
-	printf("[Core-%d][L%d Cache][BankId=%d][Stats]\n", m_core_id, m_cache_level,m_bank_id);
+	if(m_cache_level!=2)
+	{
+	printf("=====================================\n");
+	printf("[L%d Cache]\n", m_cache_level);
 	printf("- Total Accesses	= %d\n", m_num_accesses);
-	printf("- Total Hits		= %d\n", m_num_hits);
+//	printf("- Total Hits		= %d\n", m_num_hits);
 	printf("- Total Misses		= %d\n", m_num_misses);
 	assert(m_num_accesses==(m_num_hits+m_num_misses));
-	printf("=> Hit  rate		= %lf\n", ((double)m_num_hits)/((double)m_num_accesses));
+//	printf("=> Hit  rate		= %lf\n", ((double)m_num_hits)/((double)m_num_accesses));
 	printf("=> Miss rate		= %lf\n", ((double)m_num_misses)/((double)m_num_accesses)); 
+	printf("=====================================\n");
+	}
+	else
+	{
+	printf("=====================================\n");
+	printf("[L%d Cache][BankId=%d]\n", m_cache_level,m_bank_id);
+	printf("- Total Accesses	= %d\n", m_num_accesses);
+//	printf("- Total Hits		= %d\n", m_num_hits);
+	printf("- Total Misses		= %d\n", m_num_misses);
+	assert(m_num_accesses==(m_num_hits+m_num_misses));
+//	printf("=> Hit  rate		= %lf\n", ((double)m_num_hits)/((double)m_num_accesses));
+	printf("=> Miss rate		= %lf\n", ((double)m_num_misses)/((double)m_num_accesses)); 
+	printf("=====================================\n");
+	}
 }
 
 void Cache::print_cache_block_status()
@@ -939,14 +956,14 @@ void	Core::insert_incoming_request(enum opcode is_write, addr_type access_addr)
 
 void	Core::print_stats()
 {
-	printf("\n=====================================\n");
-	printf("[Core-%d] Stats\n", m_core_id);
+//	printf("\n=====================================\n");
+	printf("[Core-%d] Overall Stats\n", m_core_id);
 	printf("- Num of access 	= %d\n", m_num_accesses);
-	printf("- Num of serviced	= %lld\n", m_num_serviced); 
-	printf("-------------------------------------\n");
-	printf("- Total latencies accumulated	 = %lld\n", m_access_latencies_accumulated);
+//	printf("- Num of serviced	= %lld\n", m_num_serviced); 
+//	printf("-------------------------------------\n");
+//	printf("- Total latencies accumulated	 = %lld\n", m_access_latencies_accumulated);
 	printf("- (AMAT) Average Mem Access Time = %lf\n", ((double)m_access_latencies_accumulated)/((double)m_num_serviced));
-	printf("=====================================\n\n");
+//	printf("=====================================\n\n");
 }
 
 

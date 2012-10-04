@@ -444,16 +444,79 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	// Finished execution
-	printf("\n\n[End of Execution]Current CPU-CYcle=%lld\n\n", cpu_cycle);
+	printf("\n======================================================================================\n");
+	printf("[End of Execution] Current CPU-Cycle=%lld .... BELOW are final results!!!\n", cpu_cycle);
+	printf("======================================================================================\n");
+	// Partitioned
+	if(L2_banks_are_shared==false)
+	{
+		int	bank_offset	= 0;
+		printf("\n[You are currently running in PARTITIONED mode]\n");
 
-	for(int i=0; i<num_cores; i++)
-	{
-		core[i]->print_stats();
-		L1[i]->print_stats();
+		for(int i=0; i<num_cores; i++)
+		{
+			#ifdef _DEBUG_
+			cout<<"Core_"<<i<<" has "<<L2_number_of_banks_each_core[i]<<" banks allocated!"<<endl;
+			printf("Bank_Offset=%d\n", bank_offset);
+			#endif
+			printf("\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+			printf("[Below are Core-%d's stats][Num of Banks allocated = %d]\n", i, L2_number_of_banks_each_core[i]);
+			core[i]->print_stats();
+			L1[i]->print_stats();
+			// Get accum value
+			unsigned int	accesses	= 0;
+			unsigned int	misses		= 0;
+			for(int j=bank_offset; j<(bank_offset+L2_number_of_banks_each_core[i]); j++)
+			{
+				accesses += L2[j]->get_access();
+				misses	+= L2[j]->get_misses();
+			}
+			printf("[L2 Cache][Overall Accumulated across Banks]\n");
+			printf("- Total Accesses	= %d\n",accesses );
+			printf("- Total Misses		= %d\n", misses);
+			printf("=> Miss rate		= %lf\n", ((double)misses)/((double)accesses)); 
+			printf("=====================================\n");
+			printf("[L2 Cache][Per Bank Stats]\n");
+			for(int j=bank_offset; j<(bank_offset+L2_number_of_banks_each_core[i]); j++)
+			{
+				L2[j]->print_stats();
+			}
+			bank_offset	+= L2_number_of_banks_each_core[i];
+			printf("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+		}
 	}
-	for(int i=0; i<l2_num_banks; i++)
+	else
 	{
-		L2[i]->print_stats();
+
+		printf("\n[You are currently running in SHARED mode]\n");
+		for(int i=0; i<num_cores; i++)
+		{
+			printf("\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+			printf("[Below are Core-%d's stats]\n", i);
+			core[i]->print_stats();
+			L1[i]->print_stats();
+			printf("[L2 Cache][Results accumulated below ... as this is SHARED mode]\n");
+			printf("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
+		}
+		// Get accum value
+		unsigned int	accesses	= 0;
+		unsigned int	misses		= 0;
+		for(int i=0; i<l2_num_banks; i++)
+		{
+			accesses += L2[i]->get_access();
+			misses	+= L2[i]->get_misses();
+		}
+		printf("\n\n[L2 Cache][Overall Accumulated across Banks]\n");
+		printf("- Total Accesses	= %d\n",accesses );
+		printf("- Total Misses		= %d\n", misses);
+		printf("=> Miss rate		= %lf\n", ((double)misses)/((double)accesses)); 
+		printf("=====================================\n");
+		printf("[L2 Cache][Per Bank Stats]\n");
+		for(int i=0; i<l2_num_banks; i++)
+		{
+			L2[i]->print_stats();
+		}
+		printf("=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
 	}
 
 }

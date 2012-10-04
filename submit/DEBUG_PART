@@ -1,0 +1,193 @@
+Number of cores:                        4
+L1 Size:                                32768[1;31mKB[0m
+L2 Size:                                1048576[1;31mKB[0m
+Core                                    0
+number of banks allocated in L2 =       4
+trace file name =                       gcc_25M.trace
+Core                                    1
+number of banks allocated in L2 =       4
+trace file name =                       dealII_25M.trace
+Core                                    2
+number of banks allocated in L2 =       4
+trace file name =                       mcf_25M.trace
+Core                                    3
+number of banks allocated in L2 =       4
+trace file name =                       soplex_25M.trace
+
+======================================================================================
+[End of Execution] Current CPU-Cycle=25006980 .... BELOW are final results!!!
+======================================================================================
+
+[You are currently running in PARTITIONED mode]
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[Below are Core-0's stats][Num of Banks allocated = 4]
+[Core-0] Overall Stats
+- Num of access 	= 8922
+- (AMAT) Average Mem Access Time = 146.206232
+=====================================
+[L1 Cache]
+- Total Accesses	= 8922
+- Total Misses		= 8922
+=> Miss rate		= 1.000000
+=====================================
+[L2 Cache][Overall Accumulated across Banks]
+- Total Accesses	= 17038
+- Total Misses		= 5862
+=> Miss rate		= 0.344054
+=====================================
+[L2 Cache][Per Bank Stats]
+=====================================
+[L2 Cache][BankId=0]
+- Total Accesses	= 4014
+- Total Misses		= 1378
+=> Miss rate		= 0.343298
+=====================================
+=====================================
+[L2 Cache][BankId=1]
+- Total Accesses	= 4867
+- Total Misses		= 1858
+=> Miss rate		= 0.381755
+=====================================
+=====================================
+[L2 Cache][BankId=2]
+- Total Accesses	= 4138
+- Total Misses		= 1347
+=> Miss rate		= 0.325520
+=====================================
+=====================================
+[L2 Cache][BankId=3]
+- Total Accesses	= 4019
+- Total Misses		= 1279
+=> Miss rate		= 0.318238
+=====================================
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[Below are Core-1's stats][Num of Banks allocated = 4]
+[Core-1] Overall Stats
+- Num of access 	= 9601
+- (AMAT) Average Mem Access Time = 138.395063
+=====================================
+[L1 Cache]
+- Total Accesses	= 9601
+- Total Misses		= 9364
+=> Miss rate		= 0.975315
+=====================================
+[L2 Cache][Overall Accumulated across Banks]
+- Total Accesses	= 16434
+- Total Misses		= 5609
+=> Miss rate		= 0.341305
+=====================================
+[L2 Cache][Per Bank Stats]
+=====================================
+[L2 Cache][BankId=4]
+- Total Accesses	= 3926
+- Total Misses		= 1404
+=> Miss rate		= 0.357616
+=====================================
+=====================================
+[L2 Cache][BankId=5]
+- Total Accesses	= 4060
+- Total Misses		= 1291
+=> Miss rate		= 0.317980
+=====================================
+=====================================
+[L2 Cache][BankId=6]
+- Total Accesses	= 4420
+- Total Misses		= 1390
+=> Miss rate		= 0.314480
+=====================================
+=====================================
+[L2 Cache][BankId=7]
+- Total Accesses	= 4028
+- Total Misses		= 1524
+=> Miss rate		= 0.378352
+=====================================
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[Below are Core-2's stats][Num of Banks allocated = 4]
+[Core-2] Overall Stats
+- Num of access 	= 43995
+- (AMAT) Average Mem Access Time = 164.585498
+=====================================
+[L1 Cache]
+- Total Accesses	= 43995
+- Total Misses		= 43345
+=> Miss rate		= 0.985226
+=====================================
+[L2 Cache][Overall Accumulated across Banks]
+- Total Accesses	= 82136
+- Total Misses		= 33122
+=> Miss rate		= 0.403258
+=====================================
+[L2 Cache][Per Bank Stats]
+=====================================
+[L2 Cache][BankId=8]
+- Total Accesses	= 20563
+- Total Misses		= 8393
+=> Miss rate		= 0.408160
+=====================================
+=====================================
+[L2 Cache][BankId=9]
+- Total Accesses	= 20693
+- Total Misses		= 8159
+=> Miss rate		= 0.394288
+=====================================
+=====================================
+[L2 Cache][BankId=10]
+- Total Accesses	= 20616
+- Total Misses		= 8161
+=> Miss rate		= 0.395858
+=====================================
+=====================================
+[L2 Cache][BankId=11]
+- Total Accesses	= 20264
+- Total Misses		= 8409
+=> Miss rate		= 0.414972
+=====================================
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+[Below are Core-3's stats][Num of Banks allocated = 4]
+[Core-3] Overall Stats
+- Num of access 	= 27333
+- (AMAT) Average Mem Access Time = 198.422456
+=====================================
+[L1 Cache]
+- Total Accesses	= 27333
+- Total Misses		= 26352
+=> Miss rate		= 0.964109
+=====================================
+[L2 Cache][Overall Accumulated across Banks]
+- Total Accesses	= 49424
+- Total Misses		= 25546
+=> Miss rate		= 0.516874
+=====================================
+[L2 Cache][Per Bank Stats]
+=====================================
+[L2 Cache][BankId=12]
+- Total Accesses	= 11983
+- Total Misses		= 6143
+=> Miss rate		= 0.512643
+=====================================
+=====================================
+[L2 Cache][BankId=13]
+- Total Accesses	= 12914
+- Total Misses		= 6633
+=> Miss rate		= 0.513629
+=====================================
+=====================================
+[L2 Cache][BankId=14]
+- Total Accesses	= 12792
+- Total Misses		= 6804
+=> Miss rate		= 0.531895
+=====================================
+=====================================
+[L2 Cache][BankId=15]
+- Total Accesses	= 11735
+- Total Misses		= 5966
+=> Miss rate		= 0.508394
+=====================================
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
